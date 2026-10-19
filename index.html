@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>MYCLM VERSION 16.0</title>
     <link href="vendor/fonts.css" rel="stylesheet">
+    <link href="css/editor.css" rel="stylesheet">
     <script src="vendor/p5-1.4.2.min.js"></script>
     <script src="vendor/p5.svg-1.3.1.js"></script>
     <style>
@@ -1729,7 +1730,7 @@ function updateBottomBarUI() {
     }
 }
 
-function updateUI() {
+function updateUI(options = {}) {
     const mode = document.getElementById('styleSelect').value;
     const conts = [document.getElementById('p1_cont'), document.getElementById('p2_cont'), document.getElementById('p3_cont'), document.getElementById('p4_cont')];
     const labels = [document.getElementById('l1'), document.getElementById('l2'), document.getElementById('l3'), document.getElementById('l4')];
@@ -1807,7 +1808,7 @@ function updateUI() {
     }
     // [OPT] Task 5: Invalida la cache al cambio di stile
     invalidateRenderCache();
-    if (originalImg || isVideoMode) redraw();
+    if (options.redraw !== false && (originalImg || isVideoMode)) redraw();
 }
 
 function handleDrop(file) { 
@@ -1831,6 +1832,9 @@ function handleFile(file) {
         }
     }
 
+    if (isGif || isVideo || isImage) {
+        document.dispatchEvent(new CustomEvent('micelium:media-loading', { detail: { animated: isGif || isVideo } }));
+    }
     if (isGif) {
         loadGifFile(file);
     } else if (isVideo) {
@@ -1879,6 +1883,7 @@ function loadImageFile(file) {
             zoomSlider.value = Math.max(0.05, initialZoom).toFixed(2);
 
             redraw(); 
+            document.dispatchEvent(new Event('micelium:image-ready'));
         });
     };
     reader.readAsDataURL(file);
@@ -2081,7 +2086,7 @@ function mousePressed(event) {
     if (ev && ev.target) {
         const el = ev.target.nodeType === 3 ? ev.target.parentElement : ev.target;
         // Non avviare il drag del canvas se il click proviene da sidebar (#ui), player bar (#videoBottomBar) o modali
-        if (el && el.closest && (el.closest('#videoBottomBar') || el.closest('#ui') || el.closest('.modal-overlay') || el.closest('.modal-content'))) {
+        if (el && el.closest && (el.closest('[data-editor-overlay]') || el.closest('#videoBottomBar') || el.closest('#ui') || el.closest('.modal-overlay') || el.closest('.modal-content'))) {
             return;
         }
     }
@@ -2121,7 +2126,7 @@ function mouseWheel(event) {
     // Non bloccare MAI lo scorrimento del browser sulla colonna di sinistra (#ui), sulla barra video (#videoBottomBar) o sulle finestre modali
     if (event && event.target) {
         const el = event.target.nodeType === 3 ? event.target.parentElement : event.target;
-        if (el && el.closest && (el.closest('#ui') || el.closest('#videoBottomBar') || el.closest('#exportModal') || el.closest('.modal-content') || el.closest('.modal-overlay'))) {
+        if (el && el.closest && (el.closest('[data-editor-overlay]') || el.closest('#ui') || el.closest('#videoBottomBar') || el.closest('#exportModal') || el.closest('.modal-content') || el.closest('.modal-overlay'))) {
             return true;
         }
     }
@@ -2130,6 +2135,11 @@ function mouseWheel(event) {
 }
 
 function markStyleDirty() {}
+
+function readStyleParameters() {
+    const animated = window.MiceliumEditor?.parameters();
+    return ['p1', 'p2', 'p3', 'p4'].map(id => animated?.[id] ?? parseFloat(document.getElementById(id).value));
+}
 
 function draw() {
     if (!img) return;
@@ -2172,32 +2182,35 @@ function draw() {
     }
 
     const mode = document.getElementById('styleSelect').value;
-    const zoom = parseFloat(document.getElementById('zoomSlider').value);
+    const zoom = window.MiceliumEditor?.parameters()?.zoomSlider ?? parseFloat(document.getElementById('zoomSlider').value);
     
-    const p = [
-        parseFloat(document.getElementById('p1').value), 
-        parseFloat(document.getElementById('p2').value), 
-        parseFloat(document.getElementById('p3').value), 
-        parseFloat(document.getElementById('p4').value)
-    ];
+    const p = readStyleParameters();
 
-    // Rendering vettoriale diretto ad altissima definizione sul canvas principale
-    clear(); 
-    background(255); 
-    push();
-    translate(viewX, viewY); 
-    scale(zoom); 
-    translate(-img.width / 2, -img.height / 2);
+    const fullSource = img;
+    const livePreview = window.MiceliumAnimate?.getPreviewSource();
+    if (livePreview) img = livePreview;
+    try {
+        // Rendering vettoriale diretto ad altissima definizione sul canvas principale
+        clear();
+        background(255);
+        push();
+        translate(viewX, viewY);
+        scale(zoom * fullSource.width / img.width);
+        translate(-img.width / 2, -img.height / 2);
 
-    if (cvLoaded) {
-        if (mode == "1") renderStyle01(this, p[0], p[1], p[2], p[3], 0);
-        else if (mode == "2") renderStyle02(this, p[0], p[1], p[2], 0);
-        else if (mode == "3") renderStyle03(this, p[0], p[1], p[2], p[3], 0); 
-        else if (mode == "4") renderStyle04(this, p[0], p[1], p[2], p[3], 0);
-        else if (mode == "5") renderStyle05(this, p[0], p[1], p[2], p[3]); 
-        else if (mode == "6") renderStyle06(this, p[0], p[1], p[2], p[3], 0); 
+        if (cvLoaded) {
+            if (mode == "1") renderStyle01(this, p[0], p[1], p[2], p[3], 0);
+            else if (mode == "2") renderStyle02(this, p[0], p[1], p[2], 0);
+            else if (mode == "3") renderStyle03(this, p[0], p[1], p[2], p[3], 0);
+            else if (mode == "4") renderStyle04(this, p[0], p[1], p[2], p[3], 0);
+            else if (mode == "5") renderStyle05(this, p[0], p[1], p[2], p[3]);
+            else if (mode == "6") renderStyle06(this, p[0], p[1], p[2], p[3], 0);
+        }
+        pop();
+        window.MiceliumViewport?.finishFrame(drawingContext);
+    } finally {
+        img = fullSource;
     }
-    pop();
 }
 
 // --- STYLE 01: TECHNO ORGANIC ---
@@ -3040,12 +3053,7 @@ async function startDeterministicExport() {
     exportGraphics.pixelDensity(1);
 
     const styleMode = document.getElementById('styleSelect').value;
-    const p = [
-        parseFloat(document.getElementById('p1').value), 
-        parseFloat(document.getElementById('p2').value), 
-        parseFloat(document.getElementById('p3').value), 
-        parseFloat(document.getElementById('p4').value)
-    ];
+    const p = readStyleParameters();
 
     let zipInstance = null;
     let renderedBitmaps = [];
@@ -3372,12 +3380,7 @@ function exportFile(col, format) {
     exportCanvas.clear(); 
     
     let mode = document.getElementById('styleSelect').value;
-    let p = [
-        parseFloat(document.getElementById('p1').value), 
-        parseFloat(document.getElementById('p2').value), 
-        parseFloat(document.getElementById('p3').value), 
-        parseFloat(document.getElementById('p4').value)
-    ];
+    let p = readStyleParameters();
     
     let savedImg = img;
     img = source;
@@ -3658,6 +3661,7 @@ function windowResized() {
             render();
         });
 
+        selectEl._cselectRefresh = render;
         render();
     }
 
@@ -3674,5 +3678,9 @@ function windowResized() {
 })();
 
 </script>
+<script defer src="js/animation-core.js"></script>
+<script defer src="js/editor-bridge.js"></script>
+<script defer src="js/animate.js"></script>
+<script defer src="js/navigation.js"></script>
 </body>
 </html>
