@@ -1,0 +1,3781 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>MYCLM VERSION 16.0</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
+    <script src="https://unpkg.com/p5.js-svg@1.3.1/dist/p5.svg.js"></script>
+    <style>
+        @font-face {
+            font-family: 'WTGaramono';
+            src: url('font/WTGaramonoTRIAL-Regular.otf') format('opentype');
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
+        @font-face {
+            font-family: 'WTGaramono';
+            src: url('font/WTGaramonoTRIAL-Italic.otf') format('opentype');
+            font-weight: 400;
+            font-style: italic;
+            font-display: swap;
+        }
+        @font-face {
+            font-family: 'WTGaramono';
+            src: url('font/WTGaramonoTRIAL-Regular.otf') format('opentype');
+            font-weight: 600;
+            font-style: normal;
+            font-display: swap;
+        }
+        @font-face {
+            font-family: 'WTGaramono';
+            src: url('font/WTGaramonoTRIAL-Regular.otf') format('opentype');
+            font-weight: 700;
+            font-style: normal;
+            font-display: swap;
+        }
+        :root { 
+            --bg: #ffffff; 
+            --fg: #000000; 
+            --border: 1px solid #000; 
+            --font-mono: 'WTGaramono', 'Nickota', 'JetBrains Mono', 'Space Mono', 'SF Mono', 'Menlo', 'Monaco', 'Consolas', monospace;
+        }
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+            font-family: var(--font-mono); display: flex;
+            height: 100vh; overflow: hidden;
+            font-size: 11px;
+            letter-spacing: -0.2px;
+        }
+        
+        /* --- SIDEBAR: REFERENCE DESIGN COMPACT --- */
+
+        #ui {
+            width: 270px;
+            border-right: 1px solid #000;
+            display: flex;
+            flex-direction: column;
+            background: #fff;
+            z-index: 100;
+            flex-shrink: 0;
+            height: 100vh;
+            max-height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Logo area - STRICT LOCKED HEIGHT: zero layout shift between video and PNG */
+        #logo-header {
+            width: 100%;
+            height: 150px;
+            flex-shrink: 0;
+            padding: 0;
+            margin-bottom: 8px;
+            box-sizing: border-box;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+        #logo {
+            cursor: pointer;
+            display: block;
+            object-fit: contain;
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+        /* Video mode: 180px width */
+        #logo-header.video-mode #logo {
+            width: 180px;
+            max-width: 90%;
+            height: auto;
+            max-height: 125px;
+            object-fit: contain;
+        }
+        /* PNG mode: 152px width, exactly aligned with video character size */
+        #logo-header.png-mode #logo {
+            width: 152px;
+            max-width: 90%;
+            height: auto;
+            max-height: 125px;
+            object-fit: contain;
+        }
+        /* High-res custom hover cursor with Retina @2x support, larger and crisp */
+        #logo-header.video-mode, #logo-header.video-mode #logo {
+            cursor: -webkit-image-set(url('img/k1_cur.png') 1x, url('img/k1_cur@2x.png') 2x) 4 4, url('img/k1_cur.png') 4 4, crosshair;
+        }
+        #logo-header.png-mode, #logo-header.png-mode #logo {
+            cursor: pointer;
+        }
+
+        /* Scrollable content area */
+        #ui-content {
+            flex: 1 1 0;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            padding: 0 16px;
+            box-sizing: border-box;
+            overflow-y: auto;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+        }
+        #ui-content::-webkit-scrollbar { width: 3px; }
+        #ui-content::-webkit-scrollbar-track { background: transparent; }
+        #ui-content::-webkit-scrollbar-thumb { background: #000; }
+
+        /* Dotted divider */
+        .ui-divider {
+            border: none;
+            border-top: 1px dashed #aaa;
+            margin: 10px 0;
+        }
+
+        /* ---- LABELS ---- */
+        .ui-label, .label {
+            font-size: 9.5px;
+            font-weight: 400;
+            font-style: normal;
+            color: #000;
+            margin-bottom: 4px;
+            display: block;
+            letter-spacing: 0.3px;
+        }
+        /* Section headers are italic */
+        .sec-title, #paramsHeader, .zoom-title, .style-title {
+            font-style: italic !important;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            font-size: 9.5px;
+            margin-bottom: 5px;
+        }
+
+        /* Generic control wrapper */
+        .control, .ui-control { margin-bottom: 11px; }
+        .control:last-child, .ui-control:last-child { margin-bottom: 0; }
+
+        /* Zoom row */
+        .zoom-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+        .zoom-btn {
+            flex-shrink: 0;
+            width: 24px; height: 24px;
+            border: 1px solid #000;
+            background: #fff;
+            font-size: 14px; font-weight: 400;
+            line-height: 1; cursor: pointer;
+            user-select: none;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .zoom-btn:hover { background: #000; color: #fff; }
+
+        /* Sliders */
+        input[type="range"] {
+            width: 100%; -webkit-appearance: none; appearance: none;
+            background: transparent; height: 16px; cursor: pointer;
+        }
+        input[type="range"]::-webkit-slider-runnable-track {
+            width: 100%; height: 1px; background: #000;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none;
+            height: 14px; width: 2.5px; background: #000; margin-top: -6.5px; border-radius: 0;
+        }
+        .zoom-slider::-webkit-slider-thumb { background: #fff; border: 1px solid #000; width: 4px; }
+
+        /* Custom checkbox */
+        .ui-checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 9px;
+            font-weight: 400;
+            font-style: normal;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .ui-checkbox-label input[type="checkbox"] {
+            width: 12px; height: 12px;
+            border: 1px solid #000;
+            appearance: none; -webkit-appearance: none;
+            background: #fff;
+            cursor: pointer;
+            flex-shrink: 0;
+            position: relative;
+        }
+        .ui-checkbox-label input[type="checkbox"]:checked { background: #000; }
+        .ui-checkbox-label input[type="checkbox"]:checked::after {
+            content: '';
+            position: absolute;
+            left: 2.5px; top: -0.5px;
+            width: 3.5px; height: 7px;
+            border: solid #fff;
+            border-width: 0 1.5px 1.5px 0;
+            transform: rotate(45deg);
+        }
+
+        /* Footer */
+        #ui-footer {
+            flex-shrink: 0;
+            padding: 0 16px 16px;
+            box-sizing: border-box;
+        }
+        #ui-footer .ui-divider { margin: 0 0 10px; }
+
+        /* Export button */
+        #btnExportSettings {
+            width: 100%;
+            background: #000;
+            color: #fff;
+            border: none;
+            padding: 11px 8px;
+            font-family: inherit;
+            font-size: 9.5px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            cursor: pointer;
+        }
+        #btnExportSettings:hover { background: #222; }
+
+        /* Legacy helpers */
+        .export-group, .full-width, .section-header, .control-desc, .sub-divider { display: none !important; }
+        .section { margin-bottom: 0; border-bottom: none; padding-bottom: 0; }
+
+        /* Custom radio (kept for style5 extras) */
+        .custom-radio {
+            display: flex; align-items: center; position: relative;
+            padding-left: 18px; margin-bottom: 6px; cursor: pointer;
+            font-size: 9px; text-transform: none; font-weight: 400;
+            user-select: none;
+        }
+        .custom-radio input { position: absolute; opacity: 0; cursor: pointer; }
+        .checkmark {
+            position: absolute; top: 0px; left: 0; height: 12px; width: 12px;
+            background-color: #fff; border: 1px solid #000; box-sizing: border-box;
+        }
+        .custom-radio input:checked ~ .checkmark { background-color: #000; }
+        .checkmark:after { content: ""; position: absolute; display: none; }
+        .custom-radio input:checked ~ .checkmark:after { display: block; }
+        .custom-radio .checkmark:after {
+            left: 3px; top: 1px; width: 3px; height: 5px;
+            border: solid white; border-width: 0 1.5px 1.5px 0;
+            transform: rotate(45deg);
+        }
+
+        /* --- UNIFIED CUSTOM SELECT COMPONENT --- */
+        .cselect-wrapper {
+            position: relative;
+            width: 100%;
+            user-select: none;
+            font-family: inherit;
+            box-sizing: border-box;
+        }
+
+        /* Closed state box */
+        .cselect-closed {
+            height: 24px;
+            border: 1px solid #000;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            box-sizing: border-box;
+        }
+        .cselect-label {
+            font-size: 9.5px;
+            font-weight: 400;
+            padding: 0 8px;
+            color: #000;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex-grow: 1;
+        }
+        .cselect-arrow {
+            width: 24px;
+            height: 100%;
+            border-left: 1px solid #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #fff;
+            color: #000;
+            flex-shrink: 0;
+            box-sizing: border-box;
+        }
+
+        /* Open dropdown state */
+        .cselect-wrapper:not(.cselect-open) .cselect-list {
+            display: none;
+        }
+        .cselect-wrapper.cselect-open .cselect-closed {
+            display: none;
+        }
+        .cselect-wrapper.cselect-open .cselect-list {
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #000;
+            background: #fff;
+            box-sizing: border-box;
+        }
+        .cselect-item {
+            display: flex;
+            align-items: center;
+            height: 24px;
+            padding: 0 8px;
+            font-size: 9.5px;
+            font-weight: 400;
+            cursor: pointer;
+            color: #000;
+            background: #fff;
+            border-bottom: 1px solid #000;
+            box-sizing: border-box;
+        }
+        .cselect-item:last-child {
+            border-bottom: none;
+        }
+        .cselect-top-item {
+            padding-right: 0;
+        }
+        .cselect-item-text {
+            flex-grow: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .cselect-check {
+            visibility: hidden;
+            font-size: 11px;
+            margin-right: 8px;
+            flex-shrink: 0;
+        }
+        .cselect-item.cselect-active {
+            background: #000000 !important;
+            color: #ffffff !important;
+        }
+        .cselect-item.cselect-active .cselect-check {
+            visibility: visible;
+            color: #fff;
+        }
+        .cselect-item:not(.cselect-active):hover {
+            background: #f2f2f2;
+        }
+        .cselect-top-item .cselect-arrow {
+            border-left: 1px solid #000;
+            background: #fff;
+            color: #000;
+        }
+
+        #workspace {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            max-height: 100vh;
+            overflow: hidden;
+            position: relative;
+            background: #ffffff;
+        }
+
+        #viewport {
+            flex-grow: 1;
+            flex-shrink: 1;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #ffffff;
+            position: relative;
+            overflow: hidden; 
+            cursor: grab;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        #viewport:active, #viewport.dragging {
+            cursor: grabbing !important;
+        }
+        
+        #canvas-holder { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; box-shadow: 0 0 20px rgba(0,0,0,0.05); }
+        #canvas-holder canvas {
+            display: block;
+            width: 100% !important;
+            height: 100% !important;
+        }
+        
+        #status-bar { position: absolute; bottom: 10px; right: 15px; font-size: 9px; text-transform: uppercase; color: #999; pointer-events: none; font-weight: 600; z-index: 20; }
+        
+        .extra-panel { margin-top: 8px; padding-top: 8px; border-top: 1px dotted #aaa; }
+        
+        /* --- DROP ZONE VETTORIALE A CENTRATURA NATURALE --- */
+        #drop-zone {
+            border: 1px dashed #000; padding: 22px 18px; text-align: center;
+            font-size: 10px; cursor: pointer; transition: background 0.1s;
+            text-transform: uppercase; font-weight: 600; letter-spacing: 1px;
+            color: #000; background: #eeeeee; 
+            width: 240px; 
+            z-index: 10;
+        }
+        #drop-zone:hover { background: #e5e5e5; }
+
+        /* --- BOTTOM PLAYER BAR PER VIDEO E GIF --- */
+        #videoBottomBar {
+            width: 100%;
+            height: 48px;
+            flex-shrink: 0;
+            background: #ffffff;
+            border-top: 1px solid #000000;
+            z-index: 60;
+            display: flex;
+            align-items: center;
+            padding: 0 14px;
+            box-sizing: border-box;
+            gap: 10px;
+            font-family: var(--font-mono);
+            cursor: default;
+            user-select: none;
+            -webkit-user-select: none;
+            position: relative;
+        }
+        #videoTimeline { cursor: pointer; }
+        .vbar-left { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+        .vbar-btn {
+            width: auto !important;
+            padding: 5px 9px !important;
+            font-size: 9.5px !important;
+            font-weight: 700 !important;
+            border: 1px solid #000 !important;
+            background: #fff !important;
+            color: #000 !important;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+        .vbar-btn:hover { background: #000 !important; color: #fff !important; }
+        .vbar-center { flex-grow: 1; display: flex; align-items: center; padding: 0 4px; }
+        .vbar-right { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+        .vbar-info { font-size: 9.5px; font-weight: 600; letter-spacing: 0.5px; white-space: nowrap; }
+        .vbar-loop-label { margin-bottom: 0 !important; font-size: 9px !important; padding-left: 18px !important; }
+        .vbar-select { width: auto !important; padding: 4px 6px !important; font-size: 9px !important; border: 1px solid #000 !important; font-family: inherit; }
+
+        /* --- MODAL EXPORT WINDOW (CLEAN MINIMAL UI STYLE) --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(255, 255, 255, 0.65);
+            backdrop-filter: blur(2px);
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: var(--font-mono);
+        }
+        .modal-content {
+            background: #ffffff;
+            border: 1px solid #000000;
+            width: 440px;
+            max-width: 92vw;
+            box-shadow: none; /* Rimosso ombreggiatura pesante per coerenza UI */
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+        }
+        .modal-header {
+            background: #000000;
+            color: #ffffff;
+            padding: 9px 14px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-sizing: border-box;
+        }
+        .modal-close {
+            background: transparent !important;
+            border: none !important;
+            color: #ffffff !important;
+            font-size: 14px !important;
+            cursor: pointer;
+            padding: 0 !important;
+            width: auto !important;
+            line-height: 1;
+            font-weight: bold;
+        }
+        .modal-close:hover {
+            opacity: 0.7;
+        }
+        .modal-body {
+            padding: 14px 16px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 9px;
+            box-sizing: border-box;
+        }
+        .modal-row {
+            display: flex;
+            gap: 8px;
+        }
+        .modal-field {
+            display: flex;
+            flex-direction: column;
+        }
+        .modal-label {
+            font-size: 9px;
+            font-weight: 400;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+            letter-spacing: 0.5px;
+            color: #000;
+        }
+        .modal-info-box {
+            background: #fafafa;
+            border: 1px dashed #aaa;
+            padding: 9px 11px;
+            font-size: 9px;
+            line-height: 1.4;
+            color: #000;
+            box-sizing: border-box;
+        }
+        .modal-footer {
+            padding: 10px 16px 14px;
+            display: flex;
+            gap: 8px;
+            border-top: 1px solid #eee;
+            box-sizing: border-box;
+        }
+        .modal-btn-primary {
+            flex: 2;
+            background: #000000 !important;
+            color: #ffffff !important;
+            border: 1px solid #000 !important;
+            padding: 9px !important;
+            font-size: 9.5px !important;
+            font-weight: 700 !important;
+            letter-spacing: 1px !important;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+        .modal-btn-primary:hover {
+            background: #222 !important;
+        }
+        .modal-btn-secondary {
+            flex: 1;
+            width: 100%;
+            background: #ffffff !important;
+            color: #000000 !important;
+            border: 1px solid #000 !important;
+            padding: 9px !important;
+            font-size: 9.5px !important;
+            font-weight: 400 !important;
+            letter-spacing: 1.5px !important;
+            cursor: pointer;
+            text-transform: uppercase;
+            text-align: center;
+        }
+        .modal-btn-secondary:hover {
+            background: #000000 !important;
+            color: #ffffff !important;
+        }
+        /* Tutti i pulsanti nel modal export si riempiono di nero su hover per feedback immediato */
+        #exportModal button:not(.modal-close) {
+            transition: background 0.1s ease, color 0.1s ease, border-color 0.1s ease;
+        }
+        #exportModal button:not(.modal-close):hover {
+            background: #000000 !important;
+            color: #ffffff !important;
+            border-color: #000000 !important;
+        }
+</style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</head>
+<body>
+
+<div id="ui">
+    <!-- Logo video - frozen, animates on slider interaction -->
+    <div id="logo-header">
+        <video id="logo" src="img/1_1.mp4" muted playsinline preload="auto" onclick="location.reload()" title="MYCELIUM - click to reload"></video>
+    </div>
+
+    <!-- Scrollable controls -->
+    <div id="ui-content">
+
+        <input type="file" id="fileInput" style="display:none" accept="image/*,video/*,.gif">
+
+        <!-- CANVAS ZOOM -->
+        <div style="margin-top: 10px; margin-bottom: 4px;">
+            <span class="label zoom-title">CANVAS ZOOM</span>
+            <div class="zoom-row">
+                <span id="btnZoomOut" class="zoom-btn" title="Zoom Out">-</span>
+                <input type="range" id="zoomSlider" class="zoom-slider" min="0.05" max="8.0" step="0.05" value="1.08" style="flex-grow:1;">
+                <span id="btnZoomIn" class="zoom-btn" title="Zoom In">+</span>
+            </div>
+        </div>
+
+        <!-- PREVIEW DEFINITION -->
+        <div class="control">
+            <span class="label">PREVIEW DEFINITION</span>
+            <select id="previewNormSelect" class="cselect-target">
+                <option value="1080" selected>Balanced HD (1080 px - fast)</option>
+                <option value="1440">High Def (1440 px)</option>
+                <option value="1800">Ultra HD (1800 px)</option>
+                <option value="native">Native (original res.)</option>
+            </select>
+        </div>
+
+        <hr class="ui-divider">
+
+        <!-- STYLE SELECTION -->
+        <div class="section">
+            <div class="control">
+                <span class="label style-title">STYLE SELECTION</span>
+                <select id="styleSelect" class="cselect-target">
+                    <option value="1" selected>Style 01 - Techno Organic</option>
+                    <option value="2">Style 02 - Bitmap dither</option>
+                    <option value="3">Style 03 - Analog Organic</option>
+                    <option value="4">Style 04 - Dot Halftone</option>
+                    <option value="5">Style 05 - Dither plugin pro</option>
+                    <option value="6">Style 06 - Agon (Liquid Relief)</option>
+                </select>
+            </div>
+
+            <!-- Style-specific extras -->
+            <div id="style2Extras" class="extra-panel" style="display:none;">
+                <div class="control">
+                    <span class="label">Color Mode</span>
+                    <select id="colorModeSelect" class="cselect-target">
+                        <option value="bw">B&amp;W</option>
+                        <option value="color">COLOR</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="style4Extras" class="extra-panel" style="display:none;">
+                <div class="control">
+                    <span class="label">MODE SELECT</span>
+                    <select id="circleModeSelect" class="cselect-target">
+                        <option value="fill">Solid Fill</option>
+                        <option value="hollow" selected>Hollow Outline</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="style5Extras" class="extra-panel" style="display:none;">
+                <div class="control">
+                    <span class="label">Dither Algorithm</span>
+                    <select id="ditherAlgo" class="cselect-target">
+                        <option value="h-mod" selected>H-MODULATION (1D Wave)</option>
+                        <option value="2d-mod">MODULATION (2D Wave)</option>
+                        <option value="diff">DIFFUSION (Floyd-Steinberg)</option>
+                        <option value="grid">GRID MODULATION (Bayer)</option>
+                        <option value="agon">AGON (Liquid 3D Relief)</option>
+                    </select>
+                </div>
+                <div class="control">
+                    <span class="label">Smart Resampling</span>
+                    <select id="resamplingMode" class="cselect-target">
+                        <option value="crisp" selected>Pixel Perfect</option>
+                        <option value="rounded">Stylized (Rounded)</option>
+                    </select>
+                </div>
+                <div class="control">
+                    <span class="label">Color Mapping</span>
+                    <label class="custom-radio">Original Colors
+                        <input type="radio" checked="checked" name="colorMapType" value="original">
+                        <span class="checkmark"></span>
+                    </label>
+                    <label class="custom-radio">Vintage Gradient Over
+                        <input type="radio" name="colorMapType" value="vintage">
+                        <span class="checkmark"></span>
+                    </label>
+                    <select id="vintagePreset" class="cselect-target" style="display:none; margin-top:4px;">
+                        <option value="sepia">SEPIA TONE</option>
+                        <option value="faded">FADED FILM</option>
+                        <option value="cyanotype">CYANOTYPE</option>
+                        <option value="warm">WARM AUTUMN</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="style6Extras" class="extra-panel" style="display:none;">
+                <div class="control">
+                    <span class="label">Agon Mode</span>
+                    <select id="agonMode" class="cselect-target">
+                        <option value="outline" selected>Liquid Chrome Outline</option>
+                        <option value="relief">3D Embossed Relief</option>
+                        <option value="solid">Dark Viscous Solid</option>
+                    </select>
+                </div>
+                <div class="control">
+                    <span class="label">3D Relief Depth</span>
+                    <select id="agonReliefDepth" class="cselect-target">
+                        <option value="deep">Deep Chisel (Strong 3D)</option>
+                        <option value="balanced" selected>Balanced 3D (Reference)</option>
+                        <option value="subtle">Subtle (Fine Wireframe)</option>
+                    </select>
+                </div>
+                <div class="control">
+                    <span class="label">Contour Geometry</span>
+                    <select id="agonGeom" class="cselect-target">
+                        <option value="squadrato" selected>Squadrato / Faceted</option>
+                        <option value="raw">Pixel-Grid Lattice (Raw)</option>
+                    </select>
+                </div>
+             
+                <div class="control">
+                    <span class="label">3D Light Direction</span>
+                    <select id="agonLight" class="cselect-target">
+                        <option value="top-left" selected>Top-Left 45deg</option>
+                        <option value="top">Top 90deg</option>
+                        <option value="left">Left 0deg</option>
+                        <option value="right">Right 180deg</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <hr class="ui-divider">
+
+        <!-- CORE PARAMETERS -->
+        <div class="section">
+            <span class="label sec-title" id="paramsHeader">CORE PARAMETERS</span>
+
+            <div class="control" id="p1_cont" style="margin-top:6px;">
+                <span id="l1" class="label">Treshold</span>
+                <input type="range" id="p1" min="0" max="255">
+            </div>
+            <div class="control" id="p2_cont">
+                <span id="l2" class="label">Grid spacing</span>
+                <input type="range" id="p2" min="2" max="40" value="8">
+            </div>
+            <div class="control" id="p3_cont">
+                <span id="l3" class="label">Dot Size</span>
+                <input type="range" id="p3" min="1" max="100" value="20">
+            </div>
+            <div class="control" id="p4_cont">
+                <span id="l4" class="label">Dot Outline</span>
+                <input type="range" id="p4" min="0" max="128" value="0">
+            </div>
+        </div>
+
+        <!-- Hidden inputs / containers for video compatibility -->
+        <div id="videoExportGroup" style="display:none;"></div>
+
+    </div><!-- end #ui-content -->
+
+    <!-- Footer sticky: Invert checkbox + Export Settings button -->
+    <div id="ui-footer">
+        <hr class="ui-divider">
+        <div style="margin-bottom:10px;">
+            <label class="ui-checkbox-label">
+                <input type="checkbox" id="invertColors">
+                INVERT CALCULATION
+            </label>
+        </div>
+        <hr class="ui-divider">
+        <button id="btnExportSettings">EXPORT SETTINGS</button>
+    </div>
+</div>
+
+<div id="workspace">
+    <div id="viewport">
+        <div id="drop-zone" onclick="document.getElementById('fileInput').click()">
+            <div style="font-size: 11px; font-weight: 700; margin-bottom: 6px;">DRAG_FILE_OR_CLICK</div>
+            <div style="font-size: 9px; opacity: 0.6; letter-spacing: 0.5px;">IMG / GIF / VIDEO (MAX 10MB)</div>
+        </div>
+        <div id="canvas-holder"></div>
+        <div id="status-bar">Version 16.0 | OpenCV: Online | Scroll to Zoom</div>
+    </div>
+
+    <!-- BOTTOM PLAYER BAR (SECONDA NAVBAR INDIPENDENTE: Visibile solo per video e GIF) -->
+    <div id="videoBottomBar" style="display:none;">
+        <div class="vbar-left">
+            <button id="btnPlayPause" class="vbar-btn" title="Play/Pausa">PAUSE</button>
+            <button id="btnPrevFrame" class="vbar-btn" title="Frame Precedente">◀ -1F</button>
+            <button id="btnNextFrame" class="vbar-btn" title="Frame Successivo">+1F ▶</button>
+            <button id="btnRestart" class="vbar-btn" title="Riavvolgi">⏮</button>
+        </div>
+
+        <div class="vbar-center">
+            <input type="range" id="videoTimeline" min="0" max="100" step="0.05" value="0" style="width:100%;">
+        </div>
+
+        <div class="vbar-right">
+            <div id="vbarTimeInfo" class="vbar-info">FR 0000/0000 | 00:00.0 / 00:00.0</div>
+            <label class="custom-radio vbar-loop-label">LOOP
+                <input type="checkbox" id="videoLoop" checked>
+                <span class="checkmark" style="height:12px; width:12px; top:0;"></span>
+            </label>
+            <select id="videoSpeed" class="vbar-select">
+                <option value="0.25">0.25x</option>
+                <option value="0.5">0.5x</option>
+                <option value="1" selected>1.0x</option>
+                <option value="1.5">1.5x</option>
+                <option value="2">2.0x</option>
+            </select>
+        </div>
+    </div>
+</div>
+
+<!-- EXPORT MODAL WINDOW — handles both images and video -->
+<div id="exportModal" class="modal-overlay" style="display:none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <span id="modalTitle">EXPORT SETTINGS — IMAGE</span>
+            <button id="modalCloseBtn" class="modal-close">&times;</button>
+        </div>
+
+        <div class="modal-body">
+
+            <!-- SECTION: Still image export (always visible) -->
+            <div id="modalImageSection">
+                <div style="font-size:9.5px; font-weight:400; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:6px; color:#000;">STILL FRAME EXPORT</div>
+                <div style="border-top:1px dotted #aaa; margin-bottom:10px;"></div>
+                
+                <div class="modal-field" style="margin-bottom:10px;">
+                    <label class="modal-label">OUTPUT RESOLUTION</label>
+                    <select id="exportQualitySelectModal" class="cselect-target">
+                        <option value="1">1X - STANDARD (1080 px)</option>
+                        <option value="2" selected>2X - HIGH DEFINITION (2K)</option>
+                        <option value="3">3X - ULTRA HIGH RES (3K)</option>
+                        <option value="4">4X - MAXIMUM QUALITY (4K+)</option>
+                    </select>
+                </div>
+                
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:8px;">
+                    <button id="expBlack" style="padding:9px 4px; font-size:9.5px; border:1px solid #000; background:#fff; color:#000; cursor:pointer; font-family:inherit; font-weight:400; letter-spacing:1px; text-transform:uppercase;">PNG BLK</button>
+                    <button id="expWhite" style="padding:9px 4px; font-size:9.5px; border:1px solid #000; background:#fff; color:#000; cursor:pointer; font-family:inherit; font-weight:400; letter-spacing:1px; text-transform:uppercase;">PNG WHT</button>
+                    <button id="expColor" style="padding:9px 4px; font-size:9.5px; border:1px solid #000; background:#fff; color:#000; cursor:pointer; font-family:inherit; font-weight:400; letter-spacing:1px; text-transform:uppercase;">PNG CLR</button>
+                </div>
+                
+                <button id="expSvg" style="width:100%; padding:9px; border:1px solid #000; background:#fff; color:#000; cursor:pointer; font-family:inherit; font-size:9.5px; font-weight:400; letter-spacing:1px; text-transform:uppercase; margin-bottom:4px;">EXPORT SVG (VECTOR)</button>
+            </div>
+
+            <!-- SECTION: Video/animation export (visible only in video/GIF mode) -->
+            <div id="modalVideoSection" style="display:none;">
+                <div style="font-size:9.5px; font-weight:400; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:6px; margin-top:8px; color:#000;">VIDEO &amp; ANIMATION EXPORT</div>
+                <div style="border-top:1px dotted #aaa; margin-bottom:10px;"></div>
+
+                <div class="modal-field" style="margin-bottom:8px;">
+                    <label class="modal-label">OUTPUT FORMAT</label>
+                    <select id="modalFormat" class="cselect-target">
+                        <option value="mp4" selected>MP4 VIDEO (H.264 / AVC)</option>
+                        <option value="webm">WEBM VIDEO (VP9 / High Bitrate)</option>
+                        <option value="zip">PNG IMAGE SEQUENCE (.ZIP)</option>
+                    </select>
+                </div>
+
+                <div class="modal-field" style="margin-bottom:8px;">
+                    <label class="modal-label">RESOLUTION &amp; SCALING</label>
+                    <select id="modalResolution" class="cselect-target">
+                        <option value="1">1.0X - NATIVE RESOLUTION</option>
+                        <option value="1.5" selected>1.5X - HIGH RESOLUTION (2K)</option>
+                        <option value="2">2.0X - QUAD HD (2.5K)</option>
+                        <option value="3">3.0X - 4K ULTRA HD</option>
+                    </select>
+                </div>
+
+                <div class="modal-row" style="margin-bottom:8px;">
+                    <div class="modal-field" style="flex:1;">
+                        <label class="modal-label">TARGET FPS</label>
+                        <select id="modalFps" class="cselect-target">
+                            <option value="native" selected>NATIVE (Original FPS)</option>
+                            <option value="24">24 FPS (Cinematic)</option>
+                            <option value="30">30 FPS (Standard)</option>
+                            <option value="60">60 FPS (Ultra Smooth)</option>
+                            <option value="15">15 FPS (Retro)</option>
+                        </select>
+                    </div>
+                    <div class="modal-field" style="flex:1;">
+                        <label class="modal-label">QUALITY / BITRATE</label>
+                        <select id="modalBitrate" class="cselect-target">
+                            <option value="50000000" selected>MASTER (50 Mbps)</option>
+                            <option value="25000000">HIGH (25 Mbps)</option>
+                            <option value="12000000">STANDARD (12 Mbps)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="modal-field" style="margin-bottom:8px;">
+                    <label class="modal-label">FRAME RANGE</label>
+                    <select id="modalRangeType" class="cselect-target" style="margin-bottom:6px;">
+                        <option value="all" selected>ALL FRAMES (Full Length)</option>
+                        <option value="custom">CUSTOM FRAME RANGE</option>
+                    </select>
+                    <div id="modalCustomRange" style="display:none; gap:8px; align-items:center; margin-top:4px;">
+                        <span style="font-size:9px;">FROM (SEC):</span>
+                        <input type="number" id="modalStartSec" value="0.0" min="0" step="0.1" style="width:65px; padding:3px 5px; font-size:9.5px; border:1px solid #000; font-family:inherit;">
+                        <span style="font-size:9px;">TO (SEC):</span>
+                        <input type="number" id="modalEndSec" value="5.0" min="0" step="0.1" style="width:65px; padding:3px 5px; font-size:9.5px; border:1px solid #000; font-family:inherit;">
+                    </div>
+                </div>
+
+                <button id="expVideoRec" style="width:100%; background:#fff; border:1px solid #000; padding:8px; font-family:inherit; font-size:9.5px; font-weight:400; cursor:pointer; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:4px;">RECORD VIEWPORT (REC)</button>
+            </div>
+
+            <div class="modal-info-box" id="modalInfoBox">
+                <div id="modalInfoText">Ready to export.</div>
+            </div>
+
+            <div id="modalProgressCont" style="display:none; margin-top:6px;">
+                <div id="modalProgressText" style="font-size:9.5px; font-weight:700; color:#000; margin-bottom:4px;">PROCESSING: 0%</div>
+                <div style="width:100%; height:6px; background:#eee; border:1px solid #000;">
+                    <div id="modalProgressFill" style="width:0%; height:100%; background:#000;"></div>
+                </div>
+                <div id="modalProgressSub" style="font-size:8.5px; color:#555; margin-top:3px;">Frame 0 / 0</div>
+            </div>
+        </div>
+
+        <div class="modal-footer" id="modalFooter">
+            <button id="modalStartExportBtn" class="modal-btn-primary" style="display:none;">START FULL EXPORT</button>
+            <button id="modalCancelBtn" class="modal-btn-secondary">CLOSE</button>
+        </div>
+    </div>
+</div>
+
+
+<script async src="https://docs.opencv.org/4.5.4/opencv.js" onload="cvReady()"></script>
+<script>
+let img, originalImg;
+let cvLoaded = false;
+let viewX = 0, viewY = 0;
+let isDragging = false;
+let lastMouseX = 0, lastMouseY = 0;
+
+// --- STATO MEDIA SORGENTE & NORMALIZZAZIONE RISOLUZIONE ---
+let rawSourceMedia = null;
+let normalizedGraphics = null;
+
+// --- STATO VIDEO & GIF ---
+let isVideoMode = false;
+let isGifMode = false;
+let videoEl = null;
+let gifImg = null;
+let gifDomEl = null;
+let gifTotalFrames = 0;
+let gifFps = 15;
+let videoFps = 30; // FPS stimato per video MP4/WebM
+let isGifPaused = false;
+let videoGraphics = null;
+let videoDuration = 0;
+let isScrubbing = false;
+let sourceVideoW = 640;
+let sourceVideoH = 360;
+let gifFrameBuffers = [];   // Array di offscreen canvas per ciascun frame estratto
+let gifFrameDelays = [];    // Durata in ms di ciascun frame estratto
+let currentGifFrame = 0;    // Indice numerico esatto del frame corrente (0-based)
+let gifLastFrameTime = 0;   // Timestamp performance.now() dell'ultimo cambio frame
+let videoPlaybackSpeed = 1.0; // Velocità di riproduzione (0.25x - 2.0x)
+
+// [OPT] Task 2: CACHE OPENCV MATS CON SORGENTE INTEGRATA (Evita riallocazioni continue e memory leak)
+let cvMatCache = {
+    source: null,         // [OPT] Matrice sorgente RGBA memorizzata e riutilizzata
+    gray: null,
+    edges: null,
+    binary: null,
+    hierarchy: null,
+    aux1: null,
+    aux2: null,
+    lastW: 0,
+    lastH: 0,
+    sourceVersion: 0      // [OPT] Versione frame per invalidazione intelligente
+};
+
+let currentSourceMediaVersion = 1;
+
+// [OPT] Task 2 & Task 5: Invalida la matrice sorgente OpenCV e il buffer renderizzato
+function markSourceMediaDirty() {
+    currentSourceMediaVersion++;
+    renderCacheDirty = true;
+}
+
+function getCachedMats(w, h) {
+    if (!cvLoaded || typeof cv === 'undefined') return null;
+    if (!cvMatCache.gray || cvMatCache.lastW !== w || cvMatCache.lastH !== h) {
+        if (cvMatCache.gray) {
+            try { cvMatCache.gray.delete(); } catch(e) {}
+            try { cvMatCache.edges.delete(); } catch(e) {}
+            try { cvMatCache.binary.delete(); } catch(e) {}
+            try { cvMatCache.hierarchy.delete(); } catch(e) {}
+            try { if (cvMatCache.aux1) cvMatCache.aux1.delete(); } catch(e) {}
+            try { if (cvMatCache.aux2) cvMatCache.aux2.delete(); } catch(e) {}
+        }
+        cvMatCache.gray = new cv.Mat(h, w, cv.CV_8UC1);
+        cvMatCache.edges = new cv.Mat(h, w, cv.CV_8UC1);
+        cvMatCache.binary = new cv.Mat(h, w, cv.CV_8UC1);
+        cvMatCache.hierarchy = new cv.Mat();
+        cvMatCache.aux1 = new cv.Mat(h, w, cv.CV_8UC1);
+        cvMatCache.aux2 = new cv.Mat(h, w, cv.CV_8UC1);
+        cvMatCache.lastW = w;
+        cvMatCache.lastH = h;
+    }
+    return cvMatCache;
+}
+
+// [OPT] Task 2: Ottiene la matrice sorgente memorizzata in cvMatCache aggiornandola solo se il frame/media è cambiato
+function getCachedSourceMat(sourceImg) {
+    if (!cvLoaded || typeof cv === 'undefined') return null;
+    let canvasEl = sourceImg.canvas || sourceImg;
+    let w = sourceImg.width || canvasEl.width;
+    let h = sourceImg.height || canvasEl.height;
+
+    if (!cvMatCache.source || cvMatCache.lastW !== w || cvMatCache.lastH !== h || cvMatCache.sourceVersion !== currentSourceMediaVersion) {
+        if (cvMatCache.source) {
+            try { cvMatCache.source.delete(); } catch(e) {}
+            cvMatCache.source = null;
+        }
+        cvMatCache.source = cv.imread(canvasEl);
+        cvMatCache.sourceVersion = currentSourceMediaVersion;
+        getCachedMats(w, h);
+    }
+    return cvMatCache.source;
+}
+
+function clearCvMatCache() {
+    if (cvMatCache.source) { try { cvMatCache.source.delete(); } catch(e) {} cvMatCache.source = null; }
+    if (cvMatCache.gray) { try { cvMatCache.gray.delete(); } catch(e) {} cvMatCache.gray = null; }
+    if (cvMatCache.edges) { try { cvMatCache.edges.delete(); } catch(e) {} cvMatCache.edges = null; }
+    if (cvMatCache.binary) { try { cvMatCache.binary.delete(); } catch(e) {} cvMatCache.binary = null; }
+    if (cvMatCache.hierarchy) { try { cvMatCache.hierarchy.delete(); } catch(e) {} cvMatCache.hierarchy = null; }
+    if (cvMatCache.aux1) { try { cvMatCache.aux1.delete(); } catch(e) {} cvMatCache.aux1 = null; }
+    if (cvMatCache.aux2) { try { cvMatCache.aux2.delete(); } catch(e) {} cvMatCache.aux2 = null; }
+    cvMatCache.lastW = 0;
+    cvMatCache.lastH = 0;
+    cvMatCache.sourceVersion = -1;
+}
+
+// [OPT] Task 3: Tabella precalcolata per Perlin Noise in Style 03 (elimina il collo di bottiglia di noise())
+const NOISE_TABLE_SIZE = 8192;
+const NOISE_MASK = NOISE_TABLE_SIZE - 1;
+const precomputedNoiseX = new Float32Array(NOISE_TABLE_SIZE);
+const precomputedNoiseY = new Float32Array(NOISE_TABLE_SIZE);
+
+function initPrecomputedNoise() {
+    for (let i = 0; i < NOISE_TABLE_SIZE; i++) {
+        let a = i * 0.019;
+        let b = i * 0.043;
+        let c = i * 0.007;
+        precomputedNoiseX[i] = (Math.sin(a) * 0.55 + Math.sin(b * 1.4) * 0.32 + Math.cos(c * 2.1) * 0.13) * 0.5;
+        precomputedNoiseY[i] = (Math.cos(a * 1.1) * 0.55 + Math.cos(b * 1.3) * 0.32 + Math.sin(c * 1.8) * 0.13) * 0.5;
+    }
+}
+initPrecomputedNoise();
+
+// Invalida la cache sorgente media
+function invalidateRenderCache() {
+    if (typeof markStyleDirty === "function") markStyleDirty();
+    markSourceMediaDirty();
+}
+
+
+// --- STATO EXPORT & DETERMINISTIC OFFLINE RENDER ---
+let isExportRunning = false;
+let isExportAborted = false;
+let isRecordingViewport = false;
+let viewportRecorder = null;
+let viewportChunks = [];
+
+function cvReady() { 
+    cvLoaded = true; 
+    let sb = document.getElementById('status-bar');
+    if (sb) sb.innerText = "Version 16.0 | OpenCV: Online | Scroll to Zoom"; 
+}
+
+// --- NORMALIZZAZIONE INTELLIGENTE RISOLUZIONE MEDIA ---
+function normalizeCurrentMedia() {
+    if (!rawSourceMedia) return;
+    const normSelect = document.getElementById('previewNormSelect');
+    const normMode = normSelect ? normSelect.value : '1440';
+
+    if (!isVideoMode && !isGifMode) {
+        // IMMAGINI STATICHE: Upscaling bicubico se piccole, Downscaling se enormi
+        let sw = rawSourceMedia.width || (rawSourceMedia.elt ? rawSourceMedia.elt.naturalWidth : 640);
+        let sh = rawSourceMedia.height || (rawSourceMedia.elt ? rawSourceMedia.elt.naturalHeight : 480);
+        let tw = sw, th = sh;
+
+        if (normMode !== 'native') {
+            let targetLong = parseInt(normMode) || 1440;
+            let longEdge = Math.max(sw, sh);
+            // Non upscalare immagini a bassa risoluzione per non introdurre sfocatura artificiale
+            if (longEdge > targetLong) {
+                let scale = targetLong / longEdge;
+                tw = Math.round(sw * scale);
+                th = Math.round(sh * scale);
+            }
+        }
+
+        // Rendering con imageSmoothing ad alta qualità per bordi e sfumature perfetti
+        let off = document.createElement('canvas');
+        off.width = tw;
+        off.height = th;
+        let octx = off.getContext('2d');
+        octx.imageSmoothingEnabled = true;
+        octx.imageSmoothingQuality = 'high';
+
+        let srcElem = rawSourceMedia.canvas ? rawSourceMedia.canvas : (rawSourceMedia.elt ? rawSourceMedia.elt : rawSourceMedia);
+        octx.drawImage(srcElem, 0, 0, tw, th);
+
+        if (normalizedGraphics) normalizedGraphics.remove();
+        normalizedGraphics = createGraphics(tw, th);
+        normalizedGraphics.pixelDensity(1);
+        normalizedGraphics.drawingContext.drawImage(off, 0, 0);
+
+        img = normalizedGraphics;
+        originalImg = normalizedGraphics;
+
+        let sb = document.getElementById('status-bar');
+        if (sb) {
+            let normTag = normMode === 'native' ? 'NATIVE' : `${tw}x${th} HD NORMALIZED`;
+            sb.innerText = `IMG: ${sw}x${sh} -> ${normTag} | Retina HD`;
+        }
+    } else {
+        // VIDEO E GIF: Buffer di anteprima nitido in HD (1280-1440px)
+        let sw = sourceVideoW || 640;
+        let sh = sourceVideoH || 360;
+        let tw = sw, th = sh;
+
+        if (normMode !== 'native') {
+            let targetLong = Math.min(1440, parseInt(normMode) || 1280);
+            let longEdge = Math.max(sw, sh);
+            let scale = targetLong / longEdge;
+            tw = Math.round(sw * scale);
+            th = Math.round(sh * scale);
+        }
+
+        if (videoGraphics) videoGraphics.remove();
+        videoGraphics = createGraphics(tw, th);
+        videoGraphics.pixelDensity(1);
+        img = videoGraphics;
+        originalImg = videoGraphics;
+
+        let sb = document.getElementById('status-bar');
+        if (sb) {
+            let normTag = normMode === 'native' ? 'NATIVE' : `${tw}x${th} HD PREVIEW`;
+            sb.innerText = `VIDEO: ${sw}x${sh} -> ${normTag} | Retina HD`;
+        }
+    }
+    // [OPT] Task 2 & Task 5: Invalida la cache per la nuova risoluzione / sorgente
+    markSourceMediaDirty();
+}
+
+function zoomByStep(factor) {
+    if (!img && !originalImg && !isVideoMode) return;
+    const zoomSlider = document.getElementById('zoomSlider');
+    let currentZoom = parseFloat(zoomSlider.value) || 1.0;
+    let newZoom = constrain(currentZoom * factor, 0.05, 8.0);
+    let cx = width / 2;
+    let cy = height / 2;
+    viewX = cx - (cx - viewX) * (newZoom / currentZoom);
+    viewY = cy - (cy - viewY) * (newZoom / currentZoom);
+    zoomSlider.value = newZoom.toFixed(2);
+    triggerSmartRedraw();
+}
+
+// --- NAVIGAZIONE TRACKPAD & VIEWPORT FLUIDA (MAC & PC) ---
+function initViewportNavigation() {
+    const vport = document.getElementById('viewport');
+    if (!vport) return;
+
+    let isPinching = false;
+
+    // Trackpad a due dita: Pan fluido & Pinch-to-zoom naturale
+    vport.addEventListener('wheel', (e) => {
+        if (e.target && e.target.closest && (e.target.closest('#videoBottomBar') || e.target.closest('#ui') || e.target.closest('.modal-overlay'))) {
+            return;
+        }
+        e.preventDefault();
+        if (!img && !originalImg && !isVideoMode) return;
+
+        const rect = vport.getBoundingClientRect();
+        const curMouseX = e.clientX - rect.left;
+        const curMouseY = e.clientY - rect.top;
+
+        const zoomSlider = document.getElementById('zoomSlider');
+        let currentZoom = parseFloat(zoomSlider.value) || 1.0;
+
+        // Pinch to zoom su trackpad (ctrlKey=true) o Zoom con Cmd/Ctrl/Alt
+        if (e.ctrlKey || e.metaKey || e.altKey) {
+            let zoomFactor = Math.exp(-e.deltaY * 0.007);
+            let newZoom = constrain(currentZoom * zoomFactor, 0.05, 8.0);
+
+            // Zoom ancorato sotto il punto esatto del cursore
+            viewX = curMouseX - (curMouseX - viewX) * (newZoom / currentZoom);
+            viewY = curMouseY - (curMouseY - viewY) * (newZoom / currentZoom);
+
+            zoomSlider.value = newZoom.toFixed(2);
+            triggerSmartRedraw();
+        } else {
+            // Pan a due dita naturale su trackpad (X e Y fluidi)
+            viewX -= e.deltaX;
+            viewY -= e.deltaY;
+            triggerSmartRedraw();
+        }
+    }, { passive: false });
+
+    // Gestione gesture native Safari per trackpad
+    let gestureBaseZoom = 1.0;
+    vport.addEventListener('gesturestart', (e) => {
+        if (e.target && e.target.closest && (e.target.closest('#videoBottomBar') || e.target.closest('#ui'))) return;
+        e.preventDefault();
+        isPinching = true;
+        const zoomSlider = document.getElementById('zoomSlider');
+        gestureBaseZoom = parseFloat(zoomSlider.value) || 1.0;
+    });
+
+    vport.addEventListener('gesturechange', (e) => {
+        if (e.target && e.target.closest && (e.target.closest('#videoBottomBar') || e.target.closest('#ui'))) return;
+        e.preventDefault();
+        if (!img && !originalImg && !isVideoMode) return;
+        const rect = vport.getBoundingClientRect();
+        const curMouseX = e.clientX - rect.left;
+        const curMouseY = e.clientY - rect.top;
+
+        const zoomSlider = document.getElementById('zoomSlider');
+        let currentZoom = parseFloat(zoomSlider.value) || 1.0;
+        let newZoom = constrain(gestureBaseZoom * e.scale, 0.05, 8.0);
+
+        viewX = curMouseX - (curMouseX - viewX) * (newZoom / currentZoom);
+        viewY = curMouseY - (curMouseY - viewY) * (newZoom / currentZoom);
+
+        zoomSlider.value = newZoom.toFixed(2);
+        triggerSmartRedraw();
+    });
+
+    vport.addEventListener('gestureend', (e) => {
+        e.preventDefault();
+        isPinching = false;
+    });
+
+    // Doppio clic sul viewport per ricentrare e riadattare la vista
+    vport.addEventListener('dblclick', () => {
+        if (!img && !originalImg && !isVideoMode) return;
+        viewX = width / 2;
+        viewY = height / 2;
+        let targetW = img ? img.width : 640;
+        let targetH = img ? img.height : 480;
+        let initialZoom = Math.min((width * 0.8) / targetW, (height * 0.8) / targetH, 1.0);
+        document.getElementById('zoomSlider').value = Math.max(0.05, initialZoom).toFixed(2);
+        triggerSmartRedraw();
+    });
+
+    // Pulsanti Zoom - e +
+    const btnOut = document.getElementById('btnZoomOut');
+    const btnIn = document.getElementById('btnZoomIn');
+    if (btnOut) btnOut.addEventListener('click', () => zoomByStep(1 / 1.15));
+    if (btnIn) btnIn.addEventListener('click', () => zoomByStep(1.15));
+
+    // --- NAVIGAZIONE TOUCHBAR / TRACKPAD PER LA COLONNA A SINISTRA (SIDEBAR) ---
+    const uiContentEl = document.getElementById('ui-content');
+    const logoHeader = document.getElementById('logo-header');
+
+    if (logoHeader && uiContentEl) {
+        logoHeader.addEventListener('wheel', (e) => {
+            uiContentEl.scrollTop += e.deltaY;
+        }, { passive: true });
+    }
+
+    if (uiContentEl) {
+        // Garantisce che lo scorrimento a due dita con trackpad/touchbar scorra la colonna
+        // anche quando il cursore passa sopra i cursori range (senza blocchi o modifiche involontarie)
+        const sidebarSliders = uiContentEl.querySelectorAll('input[type="range"]');
+        sidebarSliders.forEach(slider => {
+            slider.addEventListener('wheel', (e) => {
+                if (Math.abs(e.deltaY) > 0) {
+                    uiContentEl.scrollTop += e.deltaY;
+                    e.preventDefault();
+                }
+            }, { passive: false });
+        });
+    }
+}
+
+function getViewportDimensions() {
+    const vport = document.getElementById('viewport');
+    if (vport && vport.clientWidth > 0 && vport.clientHeight > 0) {
+        return { w: vport.clientWidth, h: vport.clientHeight };
+    }
+    return { w: Math.max(100, windowWidth - 320), h: windowHeight };
+}
+
+function updateCanvasSize() {
+    const dims = getViewportDimensions();
+    if (width !== dims.w || height !== dims.h) {
+        resizeCanvas(dims.w, dims.h);
+        triggerSmartRedraw();
+    }
+}
+
+function setup() {
+    // Risoluzione nativa Retina Display (2x/3x DPI) per nitidezza e definizione assolute
+    pixelDensity(window.devicePixelRatio || 1); 
+    const dims = getViewportDimensions();
+    const canvas = createCanvas(dims.w, dims.h);
+    canvas.parent('canvas-holder');
+    viewX = width / 2; viewY = height / 2;
+
+    let vEl = select('#viewport');
+    vEl.drop(handleDrop);
+
+    document.getElementById('styleSelect').addEventListener('change', updateUI);
+    
+    const fileInput = document.getElementById('fileInput');
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files[0]) {
+            handleFile(e.target.files[0]);
+            fileInput.value = ''; // Reset per consentire ricaricamento stesso file
+        }
+    });
+    
+    document.querySelectorAll('input[name="colorMapType"]').forEach(el => {
+        el.addEventListener('change', (e) => {
+            document.getElementById('vintagePreset').style.display = e.target.value === 'vintage' ? 'block' : 'none';
+            triggerParamRedrawImmediate();
+        });
+    });
+
+    // [OPT] Task 1: Ascolto controlli sidebar con debouncing/throttling sugli slider continui
+    document.querySelectorAll('input, select').forEach(el => {
+        if (!['zoomSlider', 'videoTimeline', 'videoLoop', 'videoSpeed', 'exportQualitySelect', 
+              'modalFormat', 'modalResolution', 'modalFps', 'modalBitrate', 'modalRangeType', 'modalStartFrame', 'modalEndFrame', 'previewNormSelect'].includes(el.id)) {
+            // [OPT] Su 'input' (trascinamento slider UI a 60fps) applica debounce/throttle di 75ms
+            el.addEventListener('input', triggerParamRedrawDebounced);
+            // [OPT] Su 'change' (rilascio del mouse o selezione select) aggiorna immediatamente
+            el.addEventListener('change', triggerParamRedrawImmediate);
+        } else if (el.id === 'zoomSlider') {
+            // Lo zoom aggiorna fluidamente a 60fps con rendering vettoriale nativo cristallino
+            el.addEventListener('input', triggerSmartRedraw);
+        }
+    });
+
+    const normSelect = document.getElementById('previewNormSelect');
+    if (normSelect) {
+        normSelect.addEventListener('change', () => {
+            if (rawSourceMedia || isVideoMode) {
+                normalizeCurrentMedia();
+                triggerParamRedrawImmediate();
+            }
+        });
+    }
+
+    // Event listeners per pulsanti export nel modal
+    const expB = document.getElementById('expBlack');
+    if (expB) expB.addEventListener('click', () => exportFile(0, 'png'));
+
+    const expW = document.getElementById('expWhite');
+    if (expW) expW.addEventListener('click', () => exportFile(255, 'png'));
+
+    const expC = document.getElementById('expColor');
+    if (expC) expC.addEventListener('click', () => exportFile('color', 'png'));
+
+    const expS = document.getElementById('expSvg');
+    if (expS) expS.addEventListener('click', () => exportFile(0, 'svg'));
+
+    // EXPORT SETTINGS button: open unified modal for image or video
+    const btnExportSettings = document.getElementById('btnExportSettings');
+    if (btnExportSettings) {
+        btnExportSettings.addEventListener('click', () => {
+            const modal = document.getElementById('exportModal');
+            const videoSection = document.getElementById('modalVideoSection');
+            const startBtn = document.getElementById('modalStartExportBtn');
+            const cancelBtn = document.getElementById('modalCancelBtn');
+            const titleEl = document.getElementById('modalTitle');
+            const infoText = document.getElementById('modalInfoText');
+
+            const isMedia = isVideoMode || isGifMode;
+            if (videoSection) videoSection.style.display = isMedia ? 'block' : 'none';
+            if (startBtn) startBtn.style.display = isMedia ? 'block' : 'none';
+            if (cancelBtn) cancelBtn.innerText = 'CLOSE';
+            if (titleEl) titleEl.innerText = isMedia ? 'EXPORT SETTINGS — VIDEO' : 'EXPORT SETTINGS — IMAGE';
+            if (infoText) infoText.innerText = 'Ready to export.';
+
+            // Reset progress
+            const prog = document.getElementById('modalProgressCont');
+            if (prog) prog.style.display = 'none';
+            if (modal) modal.style.display = 'flex';
+        });
+    }
+
+    const modalCloseBtn = document.getElementById('modalCloseBtn');
+    if (modalCloseBtn) {
+        modalCloseBtn.addEventListener('click', () => {
+            document.getElementById('exportModal').style.display = 'none';
+        });
+    }
+
+    const modalCancelBtn = document.getElementById('modalCancelBtn');
+    if (modalCancelBtn) {
+        modalCancelBtn.addEventListener('click', () => {
+            document.getElementById('exportModal').style.display = 'none';
+        });
+    }
+
+    initViewportNavigation();
+    initBottomPlayerBar();
+    initExportModal();
+
+    noLoop(); 
+    updateUI(); 
+}
+
+// [OPT] Task 1: Debouncing / Throttling per triggerSmartRedraw su controlli UI (75ms)
+let paramRedrawTimeout = null;
+let lastParamRedrawTime = 0;
+const PARAM_THROTTLE_MS = 75; // Finestra di debounce/throttle bilanciata (75ms)
+
+let paramRafId = null;
+function triggerParamRedrawDebounced() {
+    if (typeof markStyleDirty === "function") markStyleDirty();
+    invalidateRenderCache();
+    let now = performance.now();
+    let isPlaying = (isVideoMode && videoEl && !videoEl.paused) || (isGifMode && !isGifPaused);
+    if (isPlaying || (!originalImg && !isVideoMode)) return;
+
+    if (now - lastParamRedrawTime >= PARAM_THROTTLE_MS) {
+        if (paramRedrawTimeout) {
+            clearTimeout(paramRedrawTimeout);
+            paramRedrawTimeout = null;
+        }
+        lastParamRedrawTime = now;
+        if (!paramRafId) {
+            paramRafId = requestAnimationFrame(() => {
+                paramRafId = null;
+                redraw();
+            });
+        }
+    } else {
+        if (paramRedrawTimeout) clearTimeout(paramRedrawTimeout);
+        paramRedrawTimeout = setTimeout(() => {
+            paramRedrawTimeout = null;
+            lastParamRedrawTime = performance.now();
+            if (!paramRafId) {
+                paramRafId = requestAnimationFrame(() => {
+                    paramRafId = null;
+                    redraw();
+                });
+            }
+        }, PARAM_THROTTLE_MS - (now - lastParamRedrawTime));
+    }
+}
+
+function triggerParamRedrawImmediate() {
+    if (typeof markStyleDirty === "function") markStyleDirty();
+    if (paramRedrawTimeout) {
+        clearTimeout(paramRedrawTimeout);
+        paramRedrawTimeout = null;
+    }
+    invalidateRenderCache();
+    lastParamRedrawTime = performance.now();
+    let isPlaying = (isVideoMode && videoEl && !videoEl.paused) || (isGifMode && !isGifPaused);
+    if (!isPlaying && (originalImg || isVideoMode)) {
+        redraw();
+    }
+}
+
+function triggerSmartRedraw() {
+    let isPlaying = (isVideoMode && videoEl && !videoEl.paused) || (isGifMode && !isGifPaused);
+    if (!isPlaying && (originalImg || isVideoMode)) {
+        redraw();
+    }
+}
+
+function formatTime(seconds) {
+    if (isNaN(seconds) || seconds < 0) return "00:00.0";
+    let m = Math.floor(seconds / 60);
+    let s = Math.floor(seconds % 60);
+    let ds = Math.floor((seconds % 1) * 10);
+    return (m < 10 ? "0" + m : m) + ":" + (s < 10 ? "0" + s : s) + "." + ds;
+}
+
+// --- GESTIONE BOTTOM PLAYER BAR ---
+function initBottomPlayerBar() {
+    const vbar = document.getElementById('videoBottomBar');
+    const btnPlayPause = document.getElementById('btnPlayPause');
+    const btnPrevFrame = document.getElementById('btnPrevFrame');
+    const btnNextFrame = document.getElementById('btnNextFrame');
+    const btnRestart = document.getElementById('btnRestart');
+    const timeline = document.getElementById('videoTimeline');
+    const videoLoop = document.getElementById('videoLoop');
+    const videoSpeed = document.getElementById('videoSpeed');
+
+    // Isola completamente la player bar: clic, trascinamenti, swipe e rotella
+    // non interferiscono MAI con il canvas e la navigazione del viewport
+    if (vbar) {
+        const stopIsolation = (e) => {
+            e.stopPropagation();
+        };
+        const isolationEvents = [
+            'mousedown', 'mouseup', 'click', 'dblclick',
+            'pointerdown', 'pointerup', 'pointermove',
+            'touchstart', 'touchend', 'touchmove',
+            'wheel', 'gesturestart', 'gesturechange', 'gestureend'
+        ];
+        isolationEvents.forEach(evtName => {
+            vbar.addEventListener(evtName, stopIsolation, {
+                passive: evtName.startsWith('touch')
+            });
+        });
+    }
+
+    btnPlayPause.addEventListener('click', () => {
+        if (isGifMode) {
+            if (isGifPaused) {
+                // Se siamo all'ultimo frame, ricomincia da 0
+                if (currentGifFrame >= gifTotalFrames - 1) {
+                    currentGifFrame = 0;
+                    syncGifFrame(0);
+                }
+                isGifPaused = false;
+                gifLastFrameTime = performance.now();
+                btnPlayPause.innerText = "PAUSE";
+                loop();
+            } else {
+                isGifPaused = true;
+                btnPlayPause.innerText = "PLAY";
+                noLoop();
+                redraw();
+            }
+            return;
+        }
+        if (!videoEl) return;
+        if (videoEl.paused) {
+            videoEl.play();
+            btnPlayPause.innerText = "PAUSE";
+            loop();
+        } else {
+            videoEl.pause();
+            btnPlayPause.innerText = "PLAY";
+            noLoop();
+            redraw();
+        }
+    });
+
+    btnPrevFrame.addEventListener('click', () => {
+        pausePlaybackForStep();
+        if (isGifMode && gifTotalFrames > 0) {
+            currentGifFrame = Math.max(0, currentGifFrame - 1);
+            syncGifFrame(currentGifFrame);
+            updateBottomBarUI();
+            redraw();
+        } else if (videoEl && videoFps > 0) {
+            let targetTime = Math.max(0, videoEl.currentTime - (1 / videoFps));
+            videoEl.currentTime = targetTime;
+        }
+    });
+
+    btnNextFrame.addEventListener('click', () => {
+        pausePlaybackForStep();
+        if (isGifMode && gifTotalFrames > 0) {
+            let loopEnabled = document.getElementById('videoLoop') ? document.getElementById('videoLoop').checked : true;
+            if (currentGifFrame < gifTotalFrames - 1) {
+                currentGifFrame++;
+            } else if (loopEnabled) {
+                currentGifFrame = 0;
+            }
+            syncGifFrame(currentGifFrame);
+            updateBottomBarUI();
+            redraw();
+        } else if (videoEl && videoFps > 0) {
+            let targetTime = Math.min(videoDuration, videoEl.currentTime + (1 / videoFps));
+            videoEl.currentTime = targetTime;
+        }
+    });
+
+    btnRestart.addEventListener('click', () => {
+        if (isGifMode && gifTotalFrames > 0) {
+            currentGifFrame = 0;
+            gifLastFrameTime = performance.now();
+            syncGifFrame(0);
+            updateBottomBarUI();
+            redraw();
+            return;
+        }
+        if (!videoEl) return;
+        videoEl.currentTime = 0;
+    });
+
+    timeline.addEventListener('mousedown', (e) => {
+        e.stopPropagation();
+        isScrubbing = true;
+    });
+    timeline.addEventListener('touchstart', (e) => {
+        e.stopPropagation();
+        isScrubbing = true;
+    }, { passive: true });
+    
+    timeline.addEventListener('input', (e) => {
+        e.stopPropagation();
+        if (isGifMode && gifTotalFrames > 0) {
+            let targetF = Math.round((parseFloat(timeline.value) / 100) * (gifTotalFrames - 1));
+            currentGifFrame = constrain(targetF, 0, gifTotalFrames - 1);
+            syncGifFrame(currentGifFrame);
+            updateBottomBarUI();
+            redraw();
+            return;
+        }
+        if (!videoEl || !videoDuration) return;
+        let targetTime = (parseFloat(timeline.value) / 100) * videoDuration;
+        videoEl.currentTime = targetTime;
+        updateBottomBarUI();
+    });
+
+    const stopScrub = (e) => {
+        if (e && e.stopPropagation) e.stopPropagation();
+        isScrubbing = false;
+    };
+    timeline.addEventListener('mouseup', stopScrub);
+    timeline.addEventListener('touchend', stopScrub);
+    window.addEventListener('mouseup', () => { isScrubbing = false; });
+    window.addEventListener('touchend', () => { isScrubbing = false; });
+
+    videoLoop.addEventListener('change', (e) => {
+        if (videoEl) videoEl.loop = e.target.checked;
+    });
+
+    videoSpeed.addEventListener('change', (e) => {
+        let speedVal = parseFloat(e.target.value) || 1.0;
+        videoPlaybackSpeed = speedVal;
+        if (videoEl) videoEl.playbackRate = speedVal;
+    });
+
+    const expRecBtn = document.getElementById('expVideoRec');
+    if (expRecBtn) expRecBtn.addEventListener('click', toggleViewportRecording);
+
+    // --- CONTROLLO DA TASTIERA: BARRA SPAZIATRICE PER PLAY/PAUSE (VIDEO E GIF) ---
+    window.addEventListener('keydown', (e) => {
+        if (e.code === 'Space' || e.key === ' ') {
+            const activeTag = document.activeElement ? document.activeElement.tagName : '';
+            const activeType = document.activeElement ? (document.activeElement.type || '') : '';
+            // Non intercettare se l'utente sta digitando testo o numeri
+            if (activeTag === 'TEXTAREA' || (activeTag === 'INPUT' && (activeType === 'text' || activeType === 'number'))) {
+                return;
+            }
+            if (isVideoMode || isGifMode) {
+                e.preventDefault();
+                btnPlayPause.click();
+            }
+        }
+    });
+}
+
+function pausePlaybackForStep() {
+    const btnPlayPause = document.getElementById('btnPlayPause');
+    if (isGifMode && !isGifPaused) {
+        isGifPaused = true;
+        btnPlayPause.innerText = "PLAY";
+        noLoop();
+    } else if (videoEl && !videoEl.paused) {
+        videoEl.pause();
+        btnPlayPause.innerText = "PLAY";
+        noLoop();
+    }
+}
+
+function syncGifFrame(frameIdx) {
+    if (isGifMode && gifFrameBuffers && gifFrameBuffers[frameIdx] && videoGraphics) {
+        videoGraphics.drawingContext.drawImage(gifFrameBuffers[frameIdx], 0, 0, videoGraphics.width, videoGraphics.height);
+        // [OPT] Task 2 & Task 5: Frame GIF sincronizzato
+        markSourceMediaDirty();
+    }
+}
+
+function updateBottomBarUI() {
+    const vbarTimeInfo = document.getElementById('vbarTimeInfo');
+    const timeline = document.getElementById('videoTimeline');
+    if (!vbarTimeInfo || !timeline) return;
+
+    if (isGifMode) {
+        let curF = currentGifFrame;
+        let totF = Math.max(1, gifTotalFrames);
+        let curSec = curF / Math.max(1, gifFps);
+        let totSec = (totF - 1) / Math.max(1, gifFps);
+        let padCur = String(curF + 1).padStart(4, '0');
+        let padTot = String(totF).padStart(4, '0');
+        vbarTimeInfo.innerText = `FR ${padCur}/${padTot} | ${formatTime(curSec)} / ${formatTime(totSec)}`;
+        if (!isScrubbing && totF > 1) {
+            timeline.value = (curF / (totF - 1)) * 100;
+        }
+    } else if (isVideoMode && videoEl) {
+        let curSec = videoEl.currentTime || 0;
+        let totSec = videoDuration || 0;
+        let curF = Math.round(curSec * videoFps);
+        let totF = Math.max(1, Math.round(totSec * videoFps));
+        let padCur = String(curF).padStart(4, '0');
+        let padTot = String(totF).padStart(4, '0');
+        vbarTimeInfo.innerText = `FR ${padCur}/${padTot} | ${formatTime(curSec)} / ${formatTime(totSec)}`;
+        if (!isScrubbing && totSec > 0) {
+            timeline.value = (curSec / totSec) * 100;
+        }
+    }
+}
+
+function updateUI() {
+    const mode = document.getElementById('styleSelect').value;
+    const conts = [document.getElementById('p1_cont'), document.getElementById('p2_cont'), document.getElementById('p3_cont'), document.getElementById('p4_cont')];
+    const labels = [document.getElementById('l1'), document.getElementById('l2'), document.getElementById('l3'), document.getElementById('l4')];
+    const sliders = [document.getElementById('p1'), document.getElementById('p2'), document.getElementById('p3'), document.getElementById('p4')];
+    
+    document.getElementById('style2Extras').style.display = 'none';
+    document.getElementById('style4Extras').style.display = 'none';
+    document.getElementById('style5Extras').style.display = 'none';
+    document.getElementById('style6Extras').style.display = 'none';
+    
+    conts.forEach(c => c.style.display = 'block');
+
+    if (mode === "1") {
+        labels[0].innerText = "Threshold";
+        labels[1].innerText = "Organic Jitter"; 
+        labels[2].innerText = "Targeted Density"; 
+        labels[3].innerText = "Line Weight";
+        sliders[0].min = "0"; sliders[0].max = "255"; sliders[0].step = "1";
+        sliders[1].min = "2"; sliders[1].max = "40"; sliders[1].step = "1";
+        sliders[2].min = "1"; sliders[2].max = "100"; sliders[2].step = "1";
+        sliders[3].min = "0.05"; sliders[3].max = "1.5"; sliders[3].step = "0.01"; 
+        sliders[0].value = 230; sliders[1].value = 20; sliders[2].value = 32; sliders[3].value = 0.15;
+    } 
+    else if (mode === "2") {
+        document.getElementById('style2Extras').style.display = 'block'; conts[3].style.display = 'none';
+        labels[0].innerText = "Threshold Cut-Out";
+        labels[1].innerText = "Threshold"; 
+        labels[2].innerText = "Noise (Pixel)";
+        sliders[0].min = "0"; sliders[0].max = "255"; sliders[0].step = "1";
+        sliders[1].min = "0"; sliders[1].max = "100"; sliders[1].step = "1";
+        sliders[2].min = "0"; sliders[2].max = "100"; sliders[2].step = "1";
+        sliders[0].value = 1; sliders[1].value = 35; sliders[2].value = 30;
+    } 
+    else if (mode === "3") {
+        labels[0].innerText = "Threshold"; 
+        labels[1].innerText = "Dirt Amount"; 
+        labels[2].innerText = "Noise Texture";
+        labels[3].innerText = "Stroke Weight";
+        sliders[3].min = "0.01"; sliders[3].max = "3.0"; sliders[3].step = "0.01"; 
+        sliders[0].value = 60;
+        sliders[1].value = 10;
+        sliders[2].value = 0;
+        sliders[3].value = 0.8;
+    } 
+    else if (mode === "4") {
+        document.getElementById('style4Extras').style.display = 'block';
+        labels[0].innerText = "Treshold";
+        labels[1].innerText = "Grid spacing"; 
+        labels[2].innerText = "Dot Size"; 
+        labels[3].innerText = "Dot Outline";
+        sliders[3].min = "0.1"; sliders[3].max = "10"; sliders[3].step = "0.1"; 
+        sliders[0].value = 75; sliders[1].value = 15; sliders[2].value = 28; sliders[3].value = 1.0;
+    }
+    else if (mode === "5") {
+        document.getElementById('style5Extras').style.display = 'block';
+        labels[0].innerText = "Threshold";
+        labels[1].innerText = "Grid Spacing / DPI"; 
+        labels[2].innerText = "Wave Amplitude"; 
+        labels[3].innerText = "Noise Grain";
+        sliders[0].min = "0"; sliders[0].max = "255"; sliders[0].step = "1"; sliders[0].value = 230; 
+        sliders[1].min = "2"; sliders[1].max = "40"; sliders[1].step = "1"; sliders[1].value = 8;  
+        sliders[2].min = "1"; sliders[2].max = "100"; sliders[2].step = "1"; sliders[2].value = 20; 
+        sliders[3].min = "0"; sliders[3].max = "128"; sliders[3].step = "1"; sliders[3].value = 0;  
+    }
+    else if (mode === "6") {
+        document.getElementById('style6Extras').style.display = 'block';
+        labels[0].innerText = "Threshold";
+        labels[1].innerText = "3D Relief Depth";
+        labels[2].innerText = "Droplets & Viscosity";
+        labels[3].innerText = "Dither Grain";
+        sliders[0].min = "0"; sliders[0].max = "255"; sliders[0].step = "1"; sliders[0].value = 140;
+        sliders[1].min = "1"; sliders[1].max = "40"; sliders[1].step = "1"; sliders[1].value = 14;
+        sliders[2].min = "0"; sliders[2].max = "80"; sliders[2].step = "1"; sliders[2].value = 28;
+        sliders[3].min = "1"; sliders[3].max = "15"; sliders[3].step = "1"; sliders[3].value = 2;
+    }
+    // [OPT] Task 5: Invalida la cache al cambio di stile
+    invalidateRenderCache();
+    if (originalImg || isVideoMode) redraw();
+}
+
+function handleDrop(file) { 
+    let nativeFile = (file && file.file) ? file.file : file;
+    handleFile(nativeFile); 
+}
+
+function handleFile(file) {
+    if (!file) return;
+    const isGif = file.type === 'image/gif' || /\.(gif)$/i.test(file.name || '');
+    const isVideo = (file.type && file.type.startsWith('video/')) || /\.(mp4|webm|mov|ogg|m4v)$/i.test(file.name || '');
+    const isImage = (file.type && file.type.startsWith('image/')) || /\.(png|jpe?g|webp|bmp|svg)$/i.test(file.name || '');
+
+    // LIMITE RIGIDO DI 10MB PER VIDEO E GIF
+    const MAX_MEDIA_BYTES = 10 * 1024 * 1024;
+    if (isGif || isVideo) {
+        if (file.size > MAX_MEDIA_BYTES) {
+            let sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+            alert(`LIMITE DIMENSIONE SUPERATO: Il file selezionato pesa ${sizeMB} MB.\nIl limite massimo consentito per Video e GIF è di 10.0 MB.\nComprimi o accorcia il video prima di caricarlo.`);
+            return;
+        }
+    }
+
+    if (isGif) {
+        loadGifFile(file);
+    } else if (isVideo) {
+        loadVideoFile(file);
+    } else if (isImage) {
+        loadImageFile(file);
+    } else {
+        alert("Formato file non supportato. Seleziona un'immagine, GIF o video (MP4, WebM, MOV max 10MB).");
+    }
+}
+
+function loadImageFile(file) {
+    if (videoEl) {
+        videoEl.pause();
+        videoEl.src = '';
+    }
+    if (isGifMode && gifImg && gifImg.pause) {
+        gifImg.pause();
+    }
+    isGifMode = false;
+    isVideoMode = false;
+    gifFrameBuffers = [];
+    gifFrameDelays = [];
+    currentGifFrame = 0;
+
+    // Nasconde la player bar inferiore e la sezione export video
+    document.getElementById('videoBottomBar').style.display = 'none';
+    document.getElementById('videoExportGroup').style.display = 'none';
+    updateCanvasSize();
+    noLoop();
+
+    document.getElementById('drop-zone').style.display = 'none'; 
+    document.getElementById('canvas-holder').style.display = 'block';
+
+    let reader = new FileReader();
+    reader.onload = (e) => {
+        loadImage(e.target.result, (loaded) => { 
+            rawSourceMedia = loaded;
+            normalizeCurrentMedia();
+
+            viewX = width / 2; 
+            viewY = height / 2; 
+
+            let zoomSlider = document.getElementById('zoomSlider');
+            let initialZoom = Math.min((width * 0.8) / img.width, (height * 0.8) / img.height, 1.0);
+            zoomSlider.value = Math.max(0.05, initialZoom).toFixed(2);
+
+            redraw(); 
+        });
+    };
+    reader.readAsDataURL(file);
+}
+
+function loadGifFile(file) {
+    if (videoEl) {
+        videoEl.pause();
+        videoEl.src = '';
+    }
+    const gifUrl = URL.createObjectURL(file);
+
+    if (!gifDomEl) {
+        gifDomEl = document.createElement('img');
+        gifDomEl.id = 'gifDomEl';
+        gifDomEl.style.position = 'fixed';
+        gifDomEl.style.left = '-9999px';
+        gifDomEl.style.top = '0';
+        gifDomEl.style.pointerEvents = 'none';
+        document.body.appendChild(gifDomEl);
+    }
+    gifDomEl.src = gifUrl;
+
+    loadImage(gifUrl, (loadedImg) => {
+        let hasFrames = (loadedImg.numFrames && loadedImg.numFrames() > 1) || 
+                        (loadedImg.gifProperties && loadedImg.gifProperties.frames && loadedImg.gifProperties.frames.length > 1);
+
+        let naturalW = loadedImg.width || gifDomEl.naturalWidth || 640;
+        let naturalH = loadedImg.height || gifDomEl.naturalHeight || 480;
+        sourceVideoW = naturalW;
+        sourceVideoH = naturalH;
+        rawSourceMedia = loadedImg;
+
+        if (hasFrames) {
+            isGifMode = true;
+            isVideoMode = true;
+            gifImg = loadedImg;
+            isGifPaused = false;
+
+            // Pausa il player interno asincrono di p5: controlleremo l'animazione frame-by-frame
+            if (gifImg.pause) gifImg.pause();
+
+            gifTotalFrames = loadedImg.numFrames ? loadedImg.numFrames() : loadedImg.gifProperties.frames.length;
+
+            // Estrazione deterministica e pre-rendering di ciascun frame della GIF
+            gifFrameBuffers = [];
+            gifFrameDelays = [];
+            currentGifFrame = 0;
+            gifLastFrameTime = performance.now();
+
+            let totalDurationMs = 0;
+            for (let f = 0; f < gifTotalFrames; f++) {
+                if (loadedImg.setFrame) loadedImg.setFrame(f);
+                let fc = document.createElement('canvas');
+                fc.width = naturalW;
+                fc.height = naturalH;
+                let fctx = fc.getContext('2d');
+                if (loadedImg.canvas) {
+                    fctx.drawImage(loadedImg.canvas, 0, 0);
+                } else if (gifDomEl) {
+                    fctx.drawImage(gifDomEl, 0, 0);
+                }
+                gifFrameBuffers.push(fc);
+
+                let delayCentisec = (loadedImg.gifProperties && loadedImg.gifProperties.frames && loadedImg.gifProperties.frames[f]) ? loadedImg.gifProperties.frames[f].delay : 10;
+                let delayMs = delayCentisec > 0 ? delayCentisec * 10 : 100;
+                if (delayMs < 20) delayMs = 100;
+                gifFrameDelays.push(delayMs);
+                totalDurationMs += delayMs;
+            }
+
+            if (loadedImg.setFrame) loadedImg.setFrame(0);
+
+            let avgFrameDelayMs = totalDurationMs / Math.max(1, gifTotalFrames);
+            gifFps = Math.max(1, Math.round(1000 / avgFrameDelayMs));
+            videoDuration = totalDurationMs / 1000;
+
+            normalizeCurrentMedia();
+
+            document.getElementById('drop-zone').style.display = 'none'; 
+            document.getElementById('canvas-holder').style.display = 'block';
+
+            // Mostra Bottom Player Bar e abilita Export Modal
+            document.getElementById('videoBottomBar').style.display = 'flex';
+            document.getElementById('videoExportGroup').style.display = 'block';
+            updateCanvasSize();
+            document.getElementById('btnPlayPause').innerText = "PAUSE";
+
+            viewX = width / 2;
+            viewY = height / 2;
+
+            let zoomSlider = document.getElementById('zoomSlider');
+            let initialZoom = Math.min((width * 0.8) / img.width, (height * 0.8) / img.height, 1.0);
+            zoomSlider.value = Math.max(0.05, initialZoom).toFixed(2);
+
+            syncGifFrame(0);
+            updateBottomBarUI();
+            loop();
+        } else {
+            isGifMode = false;
+            isVideoMode = false;
+            gifFrameBuffers = [];
+            gifFrameDelays = [];
+            currentGifFrame = 0;
+
+            document.getElementById('videoBottomBar').style.display = 'none';
+            document.getElementById('videoExportGroup').style.display = 'none';
+            updateCanvasSize();
+            noLoop();
+
+            normalizeCurrentMedia();
+
+            document.getElementById('drop-zone').style.display = 'none'; 
+            document.getElementById('canvas-holder').style.display = 'block';
+
+            viewX = width / 2;
+            viewY = height / 2;
+
+            let zoomSlider = document.getElementById('zoomSlider');
+            let initialZoom = Math.min((width * 0.8) / img.width, (height * 0.8) / img.height, 1.0);
+            zoomSlider.value = Math.max(0.05, initialZoom).toFixed(2);
+
+            redraw();
+        }
+    });
+}
+
+function loadVideoFile(file) {
+    if (isGifMode && gifImg && gifImg.pause) {
+        gifImg.pause();
+    }
+    isGifMode = false;
+    gifFrameBuffers = [];
+    gifFrameDelays = [];
+    currentGifFrame = 0;
+
+    if (videoEl) {
+        videoEl.pause();
+    } else {
+        videoEl = document.createElement('video');
+        videoEl.crossOrigin = 'anonymous';
+        videoEl.playsInline = true;
+        videoEl.muted = true;
+        videoEl.loop = true;
+    }
+
+    const videoUrl = URL.createObjectURL(file);
+    videoEl.src = videoUrl;
+
+    videoEl.onloadedmetadata = () => {
+        videoDuration = videoEl.duration || 0;
+        sourceVideoW = videoEl.videoWidth || 640;
+        sourceVideoH = videoEl.videoHeight || 360;
+        rawSourceMedia = videoEl;
+        isVideoMode = true;
+
+        normalizeCurrentMedia();
+
+        document.getElementById('drop-zone').style.display = 'none'; 
+        document.getElementById('canvas-holder').style.display = 'block';
+
+        // Mostra Bottom Player Bar e gruppo Export Video
+        document.getElementById('videoBottomBar').style.display = 'flex';
+        document.getElementById('videoExportGroup').style.display = 'block';
+        updateCanvasSize();
+        document.getElementById('btnPlayPause').innerText = "PAUSE";
+
+        viewX = width / 2;
+        viewY = height / 2;
+
+        let zoomSlider = document.getElementById('zoomSlider');
+        let initialZoom = Math.min((width * 0.8) / img.width, (height * 0.8) / img.height, 1.0);
+        zoomSlider.value = Math.max(0.05, initialZoom).toFixed(2);
+
+        videoEl.play();
+        loop();
+    };
+
+    videoEl.addEventListener('seeked', () => {
+        if (isVideoMode && videoGraphics && videoEl) {
+            videoGraphics.drawingContext.drawImage(videoEl, 0, 0, videoGraphics.width, videoGraphics.height);
+            // [OPT] Task 2 & Task 5: Frame cercato del video aggiornato
+            markSourceMediaDirty();
+            updateBottomBarUI();
+            if (videoEl.paused) redraw();
+        }
+    });
+
+    videoEl.addEventListener('ended', () => {
+        if (!videoEl.loop && !isExportRunning) {
+            document.getElementById('btnPlayPause').innerText = "PLAY";
+            noLoop();
+        }
+    });
+}
+
+// --- INTERAZIONE MOUSE (PAN & ZOOM) ---
+function mousePressed(event) { 
+    const ev = event || window.event;
+    if (ev && ev.target) {
+        const el = ev.target.nodeType === 3 ? ev.target.parentElement : ev.target;
+        // Non avviare il drag del canvas se il click proviene da sidebar (#ui), player bar (#videoBottomBar) o modali
+        if (el && el.closest && (el.closest('#videoBottomBar') || el.closest('#ui') || el.closest('.modal-overlay') || el.closest('.modal-content'))) {
+            return;
+        }
+    }
+    
+    // Assicura che il click sia avvenuto all'interno dell'area visibile del viewport
+    const vport = document.getElementById('viewport');
+    if (vport && ev && ev.clientX !== undefined && ev.clientY !== undefined) {
+        const rect = vport.getBoundingClientRect();
+        if (ev.clientX < rect.left || ev.clientX > rect.right || ev.clientY < rect.top || ev.clientY > rect.bottom) {
+            return;
+        }
+    }
+
+    if (mouseX >= 0 && mouseX <= width && mouseY >= 0 && mouseY <= height && (originalImg || isVideoMode || img)) { 
+        isDragging = true; 
+        lastMouseX = mouseX; 
+        lastMouseY = mouseY; 
+        if (vport) vport.classList.add('dragging');
+    } 
+}
+function mouseDragged() { 
+    if (isDragging) { 
+        viewX += mouseX - lastMouseX; 
+        viewY += mouseY - lastMouseY; 
+        lastMouseX = mouseX; 
+        lastMouseY = mouseY; 
+        triggerSmartRedraw();
+    } 
+}
+function mouseReleased() { 
+    isDragging = false; 
+    let vport = document.getElementById('viewport');
+    if (vport) vport.classList.remove('dragging');
+}
+
+function mouseWheel(event) {
+    // Non bloccare MAI lo scorrimento del browser sulla colonna di sinistra (#ui), sulla barra video (#videoBottomBar) o sulle finestre modali
+    if (event && event.target) {
+        const el = event.target.nodeType === 3 ? event.target.parentElement : event.target;
+        if (el && el.closest && (el.closest('#ui') || el.closest('#videoBottomBar') || el.closest('#exportModal') || el.closest('.modal-content') || el.closest('.modal-overlay'))) {
+            return true;
+        }
+    }
+    // Sul viewport, l'evento rotella/trackpad è già gestito in modo isolato in initViewportNavigation
+    return false;
+}
+
+let styleRenderBuffer = null;
+let styleRenderDirty = true;
+
+function markStyleDirty() {
+    styleRenderDirty = true;
+}
+
+function draw() {
+    if (!img) return;
+
+    if (isVideoMode) {
+        if (isGifMode && gifFrameBuffers && gifFrameBuffers.length > 0) {
+            let now = performance.now();
+            if (!isGifPaused) {
+                let delay = (gifFrameDelays[currentGifFrame] || (1000 / gifFps)) / videoPlaybackSpeed;
+                if (now - gifLastFrameTime >= delay) {
+                    gifLastFrameTime = now;
+                    if (currentGifFrame < gifTotalFrames - 1) {
+                        currentGifFrame++;
+                        // [OPT] Task 2 & Task 5: Frame GIF avanzato
+                        markSourceMediaDirty();
+                    } else {
+                        // Raggiunto l'ultimo frame: verifica se il LOOP è attivo
+                        let loopEnabled = document.getElementById('videoLoop') ? document.getElementById('videoLoop').checked : true;
+                        if (loopEnabled) {
+                            currentGifFrame = 0; // Riparte dall'inizio in loop continuo
+                            // [OPT] Task 2 & Task 5: Frame GIF riavviato in loop
+                            markSourceMediaDirty();
+                        } else {
+                            // Non in loop: si arresta all'ultimo frame esattamente come un video
+                            isGifPaused = true;
+                            const btnPlayPause = document.getElementById('btnPlayPause');
+                            if (btnPlayPause) btnPlayPause.innerText = "PLAY";
+                            noLoop();
+                        }
+                    }
+                    if (!isScrubbing) updateBottomBarUI();
+                }
+            }
+            if (videoGraphics && gifFrameBuffers[currentGifFrame]) {
+                videoGraphics.drawingContext.drawImage(gifFrameBuffers[currentGifFrame], 0, 0, videoGraphics.width, videoGraphics.height);
+            }
+        } else if (videoEl && videoEl.readyState >= 2) {
+            if (!videoEl.paused) {
+                // [OPT] Task 2 & Task 5: Video in riproduzione attiva
+                markSourceMediaDirty();
+            }
+            videoGraphics.drawingContext.drawImage(videoEl, 0, 0, videoGraphics.width, videoGraphics.height);
+            if (!isScrubbing) updateBottomBarUI();
+        }
+    }
+
+    const mode = document.getElementById('styleSelect').value;
+    const zoom = parseFloat(document.getElementById('zoomSlider').value);
+    
+    const p = [
+        parseFloat(document.getElementById('p1').value), 
+        parseFloat(document.getElementById('p2').value), 
+        parseFloat(document.getElementById('p3').value), 
+        parseFloat(document.getElementById('p4').value)
+    ];
+
+    // Gestione cache del frame filtrato: non ricalcola durante pan/zoom ma riusa il buffer a 120fps
+    if (!styleRenderBuffer || styleRenderBuffer.width !== img.width || styleRenderBuffer.height !== img.height) {
+        if (styleRenderBuffer) styleRenderBuffer.remove();
+        styleRenderBuffer = createGraphics(img.width, img.height);
+        styleRenderBuffer.pixelDensity(window.devicePixelRatio || 1);
+                styleRenderBuffer.smooth();
+       if (styleRenderBuffer.drawingContext) {
+    styleRenderBuffer.drawingContext.imageSmoothingEnabled = false; // Prima era true
+    // styleRenderBuffer.drawingContext.imageSmoothingQuality = "high"; // Commenta o elimina
+}
+        styleRenderDirty = true;
+    }
+
+    if (styleRenderDirty || isVideoMode) {
+        styleRenderBuffer.clear();
+        if (cvLoaded) {
+            if (mode == "1") renderStyle01(styleRenderBuffer, p[0], p[1], p[2], p[3], 0);
+            else if (mode == "2") renderStyle02(styleRenderBuffer, p[0], p[1], p[2], 0);
+            else if (mode == "3") renderStyle03(styleRenderBuffer, p[0], p[1], p[2], p[3], 0); 
+            else if (mode == "4") renderStyle04(styleRenderBuffer, p[0], p[1], p[2], p[3], 0);
+            else if (mode == "5") renderStyle05(styleRenderBuffer, p[0], p[1], p[2], p[3]); 
+            else if (mode == "6") renderStyle06(styleRenderBuffer, p[0], p[1], p[2], p[3], 0); 
+        }
+        if (!isVideoMode) styleRenderDirty = false;
+    }
+
+clear(); 
+    background(255); 
+    push();
+    translate(viewX, viewY); 
+    scale(zoom); 
+    translate(-img.width / 2, -img.height / 2);
+    
+    drawingContext.imageSmoothingEnabled = false;
+    
+    image(styleRenderBuffer, 0, 0);
+    pop();
+}
+
+// [OPT] Task 2: renderStyle01 con riutilizzo della matrice sorgente da cvMatCache
+function renderStyle01(t, e, j, n, w, c) {
+    let s = getCachedSourceMat(img);
+    if (!s) return;
+    let mats = getCachedMats(s.cols, s.rows);
+    let g = mats ? mats.gray : new cv.Mat();
+    let ed = mats ? mats.edges : new cv.Mat();
+    
+    cv.cvtColor(s, g, cv.COLOR_RGBA2GRAY, 0);
+    if (document.getElementById('invertColors').checked) cv.bitwise_not(g, g);
+    
+    // Mappatura precisa su scala 0-255 per una definizione dei contorni ricca e accurata
+    let ch = map(constrain(e, 0, 255), 0, 255, 320, 25);
+    cv.Canny(g, ed, ch * 0.4, ch, 3, false);
+    
+    let co = new cv.MatVector(); 
+    let hi = mats ? mats.hierarchy : new cv.Mat();
+    cv.findContours(ed, co, hi, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
+    
+    // Line weight scalato dinamicamente con la risoluzione per non perdere nitidezza
+    let bs = Math.max(0.35, w * (img.width / 1000)); 
+    let ji = map(j, 0, 100, 0, 1.2);
+    t.smooth();
+    t.strokeCap(ROUND);
+    t.strokeJoin(ROUND);
+    t.randomSeed(42); 
+    if (c !== 'color') t.stroke(c); else t.stroke(0); 
+    t.strokeWeight(bs); 
+    t.noFill();
+
+    let coSize = co.size();
+    for (let i = 0; i < coSize; ++i) {
+        let cn = co.get(i); 
+        if (cn.rows < 6) continue; // Mantiene tutti i micro-dettagli e tratti fini
+        let br = cv.boundingRect(cn);
+        // Esclude tassativamente qualsiasi riquadro perimetrale o bordo dell'immagine
+        if (br.width >= s.cols - 10 && br.height >= s.rows - 10) continue;
+        if (br.x <= 4 && br.y <= 4 && (br.width >= s.cols - 10 || br.height >= s.rows - 10)) continue;
+        t.beginShape();
+        let rows = cn.rows;
+        let data = cn.data32S;
+        for (let k = 0; k < rows; ++k) {
+            t.curveVertex(data[k * 2] + random(-ji, ji), data[k * 2 + 1] + random(-ji, ji));
+        }
+        t.endShape();
+    }
+    // [OPT] Task 2: s è gestito e conservato in cvMatCache (non eliminare qui)
+    co.delete();
+    if (!mats) { g.delete(); ed.delete(); hi.delete(); }
+}
+
+// --- STYLE 02: BITMAP DITHER (Ottimizzato, fluido 60fps, pixel perfettamente uniti e senza gap) ---
+function renderStyle02(t, s, th, n, c) {
+    let st = floor(map(s, 0, 100, 1, 20)); 
+    if (st < 1) st = 1;
+    let tr = map(th, 0, 100, 0, 255); 
+    let na = map(n, 0, 100, 0, 100);
+    let cm = document.getElementById('colorModeSelect') ? document.getElementById('colorModeSelect').value : 'bw'; 
+    let invert = document.getElementById('invertColors') ? document.getElementById('invertColors').checked : false; 
+    
+    img.loadPixels(); 
+    let pix = img.pixels;
+    let iw = img.width, ih = img.height;
+    if (!pix || iw <= 0 || ih <= 0) return;
+    
+    let isColor = (cm === 'color' || c === 'color');
+    let cr = 0, cg = 0, cb = 0;
+    if (typeof c === 'number') {
+        cr = c; cg = c; cb = c;
+    }
+
+    let ctx = t.drawingContext;
+    let isSvgTarget = (t !== window && t.isSVG) || (typeof SVG !== 'undefined' && t instanceof p5.Graphics && t.elt && t.elt.tagName === 'svg');
+
+    // Rendering raster nativo ultra-fluido (elimina i contorni bianchi e le fessure tra pixel)
+    if (ctx && ctx.drawImage && !isSvgTarget) {
+        let lowW = Math.ceil(iw / st);
+        let lowH = Math.ceil(ih / st);
+        
+        if (!renderStyle02._offCanvas) {
+            renderStyle02._offCanvas = document.createElement('canvas');
+        }
+        let off = renderStyle02._offCanvas;
+        if (off.width !== lowW || off.height !== lowH) {
+            off.width = lowW;
+            off.height = lowH;
+        }
+        let offCtx = off.getContext('2d');
+        let imgData = offCtx.createImageData(lowW, lowH);
+        let d = imgData.data;
+        
+        const INV_3 = 0.33333333;
+        let outIdx = 0, inX = 0, inY = 0, inIdx = 0, br = 0;
+        
+        let seed = 42;
+        function fastRand(min, max) {
+            seed = (seed * 9301 + 49297) % 233280;
+            return min + (seed / 233280) * (max - min);
+        }
+
+        for (let ly = 0; ly < lowH; ly++) {
+            inY = Math.min(ih - 1, ly * st);
+            for (let lx = 0; lx < lowW; lx++) {
+                inX = Math.min(iw - 1, lx * st);
+                inIdx = (inX + inY * iw) * 4;
+                outIdx = (lx + ly * lowW) * 4;
+                
+                br = (pix[inIdx] + pix[inIdx + 1] + pix[inIdx + 2]) * INV_3;
+                if (invert) br = 255 - br;
+                if (na > 0) br += fastRand(-na, na);
+                
+                if (isColor) {
+                    d[outIdx]     = pix[inIdx];
+                    d[outIdx + 1] = pix[inIdx + 1];
+                    d[outIdx + 2] = pix[inIdx + 2];
+                    d[outIdx + 3] = (pix[inIdx + 3] > 10) ? 255 : 0;
+                } else if (br < tr) {
+                    d[outIdx]     = cr;
+                    d[outIdx + 1] = cg;
+                    d[outIdx + 2] = cb;
+                    d[outIdx + 3] = 255;
+                } else {
+                    d[outIdx + 3] = 0; // Trasparente (nessun riquadro o bordo bianco)
+                }
+            }
+        }
+        
+        offCtx.putImageData(imgData, 0, 0);
+        
+        ctx.save();
+        ctx.imageSmoothingEnabled = false; // Pixel art perfetta senza sfuocature o linee bianche
+        ctx.drawImage(off, 0, 0, iw, ih);
+        ctx.restore();
+    } else {
+        // Fallback per export vettoriale SVG con rettangoli leggermente sovrapposti per evitare fessure
+        t.noStroke();
+        t.randomSeed(42);
+        let rectSize = st + 0.4; // Leggero overlap per evitare gap vettoriali
+        for (let y = 0; y < ih; y += st) {
+            for (let x = 0; x < iw; x += st) {
+                let id = (x + y * iw) * 4;
+                if (id >= pix.length) continue;
+                let br = (pix[id] + pix[id + 1] + pix[id + 2]) * 0.33333333;
+                if (invert) br = 255 - br;
+                if (na > 0) br += random(-na, na);
+                
+                if (isColor) {
+                    t.fill(pix[id], pix[id + 1], pix[id + 2]);
+                    t.rect(x, y, rectSize, rectSize);
+                } else if (br < tr) {
+                    t.fill(c);
+                    t.rect(x, y, rectSize, rectSize);
+                }
+            }
+        }
+    }
+}
+
+// [OPT] Task 2 & Task 3 & Task 4: renderStyle03 con matrice sorgente in cvMatCache, noise precalcolato e variabili hoisted
+function renderStyle03(t, p1, p2, p3, p4, c) {
+    // [OPT] Task 2: Recupero matrice sorgente da cvMatCache senza riallocazione
+    let s = getCachedSourceMat(img);
+    if (!s) return;
+    let mats = getCachedMats(s.cols, s.rows);
+    let g = mats ? mats.gray : new cv.Mat(); 
+    let b = mats ? mats.binary : new cv.Mat();
+    
+    cv.cvtColor(s, g, cv.COLOR_RGBA2GRAY, 0);
+    if (document.getElementById('invertColors').checked) cv.bitwise_not(g, g);
+    
+    cv.threshold(g, b, p1, 255, cv.THRESH_BINARY);
+    
+    let co = new cv.MatVector(); 
+    let hi = mats ? mats.hierarchy : new cv.Mat();
+    cv.findContours(b, co, hi, cv.RETR_LIST, cv.CHAIN_APPROX_NONE);
+    
+    let dr = map(p2, 0, 100, 0, 60); 
+    let scatter = map(p3, 0, 100, 0, 20);
+    let strokeBase = Math.max(0.4, p4 * (img.width / 1100));
+
+    if (c !== 'color') t.stroke(c); else t.stroke(0); 
+    t.noFill(); 
+    t.randomSeed(42);
+    
+    let coSize = co.size();
+    let imgW = img.width;
+
+    // [OPT] Task 4: Variabili interne dichiarate fuori dai cicli per eliminare la pressione sul Garbage Collector
+    let px = 0, py = 0, nx = 0, ny = 0, cx = 0, cy = 0;
+    let ang = 0, halfLen = 0, dx = 0, dy = 0, nIdx = 0;
+
+    for (let i = 0; i < coSize; ++i) {
+        let cn = co.get(i); 
+        if (cn.rows < 8) continue;
+        let br = cv.boundingRect(cn);
+        // Esclude tassativamente qualsiasi riquadro perimetrale o bordo dell'immagine
+        if (br.width >= imgW - 10 && br.height >= img.height - 10) continue;
+        if (br.x <= 4 && br.y <= 4 && (br.width >= imgW - 10 || br.height >= img.height - 10)) continue;
+        
+        let rows = cn.rows;
+        let data = cn.data32S;
+        for (let j = 0; j < rows; j += 1) {
+            px = data[j * 2];
+            py = data[j * 2 + 1];
+
+            // [OPT] Task 3: Lettura O(1) da tabella Float32Array precalcolata (sostituisce p5.noise() azzerando il tempo CPU)
+            nIdx = (px * 73 + py * 31 + j) & NOISE_MASK;
+            nx = precomputedNoiseX[nIdx] * dr;
+            ny = precomputedNoiseY[nIdx] * dr;
+            
+            if (scatter > 0) {
+                nx += random(-scatter, scatter);
+                ny += random(-scatter, scatter);
+            }
+
+            cx = px + nx;
+            cy = py + ny;
+            ang = random(TWO_PI);
+            halfLen = random(strokeBase, strokeBase * 4) * 0.5;
+            dx = Math.cos(ang) * halfLen;
+            dy = Math.sin(ang) * halfLen;
+
+            t.strokeWeight(random(strokeBase * 0.5, strokeBase * 1.5));
+            t.line(cx - dx, cy - dy, cx + dx, cy + dy);
+        }
+    }
+    // [OPT] Task 2: s è gestito e conservato in cvMatCache (non eliminare qui)
+    co.delete(); 
+    if (!mats) { g.delete(); b.delete(); hi.delete(); }
+}
+
+// [OPT] Task 4: renderStyle04 ottimizzato (variabili fuori dai cicli, moltiplicazione anziché divisione, no GC lag)
+function renderStyle04(t, p1, p2, p3, p4, c) {
+    let cm = document.getElementById('circleModeSelect').value; 
+    let invert = document.getElementById('invertColors').checked; 
+    let th = map(p1, 0, 100, 0, 255); 
+    let st = floor(map(p2, 0, 100, 4, 40)); 
+    let ds = map(p3, 0, 100, 1, 50); 
+    let fC = c === 'color' ? 0 : c;
+    
+    img.loadPixels();
+    let pix = img.pixels;
+    let iw = img.width, ih = img.height;
+    let pixLen = pix.length;
+    const INV_3 = 0.33333333; // [OPT] Moltiplicazione anziché divisione
+
+    t.noStroke(); 
+    t.fill(fC);
+
+    // [OPT] Task 4: Dichiarazione variabili fuori dai cicli per eliminare la pressione sul Garbage Collector
+    let x = 0, y = 0, id = 0, br = 0;
+    
+    if (cm === 'fill') {
+        for (y = 0; y < ih; y += st) {
+            for (x = 0; x < iw; x += st) {
+                id = (x + y * iw) * 4; 
+                if (id >= pixLen) continue;
+                // [OPT] Task 4: Moltiplicazione per INV_3
+                br = (pix[id] + pix[id + 1] + pix[id + 2]) * INV_3;
+                if (invert) br = 255 - br; 
+                if (br < th) t.ellipse(x, y, ds, ds);
+            }
+        }
+    } else {
+        let is = Math.max(0.1, ds - (p4 * 2));
+        for (y = 0; y < ih; y += st) {
+            for (x = 0; x < iw; x += st) {
+                id = (x + y * iw) * 4; 
+                if (id >= pixLen) continue;
+                br = (pix[id] + pix[id + 1] + pix[id + 2]) * INV_3;
+                if (invert) br = 255 - br; 
+                if (br < th) t.ellipse(x, y, ds, ds);
+            }
+        }
+        t.fill(255);
+        for (y = 0; y < ih; y += st) {
+            for (x = 0; x < iw; x += st) {
+                id = (x + y * iw) * 4; 
+                if (id >= pixLen) continue;
+                br = (pix[id] + pix[id + 1] + pix[id + 2]) * INV_3;
+                if (invert) br = 255 - br; 
+                if (br < th) t.ellipse(x, y, is, is);
+            }
+        }
+    }
+}
+
+// [OPT] Task 4: renderStyle05 micro-ottimizzato (variabili hoisted, moltiplicazioni precalcolate, LUT Bayer, fast color map)
+function renderStyle05(target, threshCutoff, dpiParam, freqParam, noiseParam) {
+    let algo = document.getElementById('ditherAlgo').value;
+    let resamp = document.getElementById('resamplingMode').value;
+    let mapType = document.querySelector('input[name="colorMapType"]:checked').value;
+    let preset = document.getElementById('vintagePreset').value;
+    let invert = document.getElementById('invertColors').checked; 
+    let step = floor(dpiParam); 
+    let amp = 64; 
+    let freq = map(freqParam, 1, 100, 100, 5); 
+
+    let gradients = {
+        'sepia': [target.color('#2b1d10'), target.color('#9c6d46'), target.color('#f4e6d4')],
+        'faded': [target.color('#21243d'), target.color('#777585'), target.color('#e6e2df')],
+        'cyanotype': [target.color('#04142c'), target.color('#255c99'), target.color('#c4dce8')],
+        'warm': [target.color('#360d19'), target.color('#d85d31'), target.color('#ffedb8')]
+    };
+    let currentGrad = gradients[preset];
+    let c0 = currentGrad[0], c1 = currentGrad[1], c2 = currentGrad[2];
+
+    function getVintageColor(factor) {
+        if (factor <= 0.5) return target.lerpColor(c0, c1, factor * 2);
+        return target.lerpColor(c1, c2, (factor - 0.5) * 2);
+    }
+
+    // [OPT] Precalcolo costanti per quantizzazione luma e color mapping
+    const isOriginalMap = (mapType === 'original');
+    const numStops = (algo === 'grid' || algo === 'agon') ? 2 : 5;
+    const stepVal = 255 / (numStops - 1);
+    const invStepVal = 1 / stepVal;
+    const INV_255 = 1 / 255.0;
+    const INV_3 = 0.33333333;
+
+    function getMappedColor(r, g, b, L_prime) {
+        let qLuma = Math.round(L_prime * invStepVal) * stepVal;
+        let factor = qLuma * INV_255;
+        if (factor < 0) factor = 0; else if (factor > 1) factor = 1;
+        let origStructure = target.color(r * factor, g * factor, b * factor);
+        if (isOriginalMap) return origStructure;
+        return target.lerpColor(origStructure, getVintageColor(factor), 0.75); 
+    }
+
+    let cols = ceil(img.width / step); 
+    let rows = ceil(img.height / step); 
+    let errorMap = [];
+    if (algo === 'diff') {
+        for (let y = 0; y < rows + 1; y++) errorMap[y] = new Float32Array(cols + 1);
+    }
+
+    // [OPT] Precalcolo matrice Bayer scalata (bThresh) per evitare divisioni nel loop interno
+    const bayerRaw = [ [0,8,2,10], [12,4,14,6], [3,11,1,9], [15,7,13,5] ];
+    const bayerThresh = new Float32Array(16);
+    for (let by = 0; by < 4; by++) {
+        for (let bx = 0; bx < 4; bx++) {
+            let bt = (bayerRaw[by][bx] * (255.0 / 16.0));
+            bayerThresh[(by << 2) | bx] = 128 + (bt - 128) * 1.5;
+        }
+    }
+
+    // [OPT] Precalcolo fattori di frequenza e geometria
+    const invFreqStep = (freq * step !== 0) ? (TWO_PI / (freq * step)) : 0;
+    const isCrisp = (resamp === 'crisp');
+    const stepP1 = step + 1;
+    const stepHalf = step * 0.5;
+    const step12 = step * 1.2;
+    const invertThresh = 255 - threshCutoff;
+    const diffStepVal = 255 / 4;
+    const invDiffStepVal = 4 / 255;
+    const diffCoeff7 = 7 * 0.0625;
+    const diffCoeff3 = 3 * 0.0625;
+    const diffCoeff5 = 5 * 0.0625;
+    const diffCoeff1 = 1 * 0.0625;
+
+    img.loadPixels(); 
+    target.noStroke(); 
+    target.randomSeed(42);
+
+    let pix = img.pixels;
+    let pixLen = pix.length;
+    let imgW = img.width;
+
+    // [OPT] Task 4: Variabili interne dichiarate fuori dai cicli per eliminare la pressione sul Garbage Collector
+    let i = 0, j = 0, x = 0, y = 0, idx = 0;
+    let r = 0, g = 0, b = 0, L = 0, actualL = 0, L_prime = 0, qLuma = 0;
+    let bThresh = 0, err = 0, rowSin = 0;
+
+    for (j = 0; j < rows; j++) {
+        y = j * step;
+        if (algo === '2d-mod') {
+            rowSin = amp * Math.sin(y * invFreqStep);
+        }
+        for (i = 0; i < cols; i++) {
+            x = i * step; 
+            idx = (x + y * imgW) * 4; 
+            if (idx >= pixLen) continue;
+            r = pix[idx]; g = pix[idx+1]; b = pix[idx+2]; 
+            // [OPT] Moltiplicazione INV_3 anziché divisione
+            L = (r + g + b) * INV_3;
+
+            if (!invert && L > threshCutoff) continue;
+            if (invert && L < invertThresh) continue;
+
+            actualL = invert ? (255 - L) : L;
+            if (noiseParam > 0) actualL += target.random(-noiseParam, noiseParam);
+            L_prime = actualL; 
+            qLuma = actualL;
+
+            if (algo === 'h-mod') { 
+                L_prime = actualL + amp * Math.sin(x * invFreqStep); 
+                qLuma = L_prime; 
+            } 
+            else if (algo === '2d-mod') { 
+                L_prime = actualL + amp * Math.sin(x * invFreqStep) + rowSin; 
+                qLuma = L_prime; 
+            }
+            else if (algo === 'grid') { 
+                // [OPT] Lookup diretto O(1) in bayerThresh senza divisioni
+                bThresh = bayerThresh[((j & 3) << 2) | (i & 3)]; 
+                qLuma = (actualL < bThresh) ? 0 : 255; 
+            }
+            else if (algo === 'agon') {
+                // Algoritmo AGON integrato all'interno di Style 05: Bevel rilievo 3D con dither Bayer
+                bThresh = bayerThresh[((j & 3) << 2) | (i & 3)];
+                let edgeGrad = Math.abs(actualL - 128) * 1.6;
+                let waveMod = amp * Math.sin(x * invFreqStep) * 0.4;
+                L_prime = actualL + waveMod;
+                qLuma = (edgeGrad + waveMod < bThresh) ? 0 : 255;
+            }
+            else if (algo === 'diff') {
+                L_prime = actualL + errorMap[j][i]; 
+                // [OPT] Moltiplicazione anziché divisione
+                qLuma = Math.round(L_prime * invDiffStepVal) * diffStepVal;
+                err = L_prime - qLuma;
+                if (i + 1 < cols)                 errorMap[j][i + 1]     += err * diffCoeff7;
+                if (i - 1 >= 0 && j + 1 < rows)   errorMap[j + 1][i - 1] += err * diffCoeff3;
+                if (j + 1 < rows)                 errorMap[j + 1][i]     += err * diffCoeff5;
+                if (i + 1 < cols && j + 1 < rows) errorMap[j + 1][i + 1] += err * diffCoeff1;
+            }
+
+            target.fill(getMappedColor(r, g, b, qLuma));
+            if (isCrisp) target.rect(x, y, stepP1, stepP1); 
+            else target.ellipse(x + stepHalf, y + stepHalf, step12, step12);
+        }
+    }
+}
+
+// --- STYLE 06: AGON (LIQUID 3D RELIEF & CHROME DITHER) ---
+function renderStyle06(t, p1, p2, p3, p4, c) {
+    let s = getCachedSourceMat(img);
+    if (!s) return;
+    let mats = getCachedMats(s.cols, s.rows);
+    if (!mats) return;
+
+    let w = s.cols;
+    let h = s.rows;
+    let g = mats.gray;
+    let b = mats.binary;
+    let aux1 = mats.aux1;
+    let aux2 = mats.aux2;
+    let hi = mats.hierarchy;
+
+    let modeEl = document.getElementById('agonMode');
+    let agonMode = modeEl ? modeEl.value : 'outline'; 
+    let depthEl = document.getElementById('agonReliefDepth');
+    let depthMode = depthEl ? depthEl.value : 'balanced';
+    let geomEl = document.getElementById('agonGeom');
+    let geomMode = geomEl ? geomEl.value : 'squadrato';
+  let dropMode = 'off';
+    let lightEl = document.getElementById('agonLight');
+    let lightMode = lightEl ? lightEl.value : 'top-left';
+    let invert = document.getElementById('invertColors') ? document.getElementById('invertColors').checked : false;
+
+    // Vettore luce e ombra per rilievo tridimensionale chiseled
+    let lx = -0.707, ly = -0.707;
+    if (lightMode === 'top') { lx = 0; ly = -1.0; }
+    else if (lightMode === 'left') { lx = -1.0; ly = 0; }
+    else if (lightMode === 'right') { lx = 1.0; ly = 0; }
+    let sx = -lx, sy = -ly; // Direzione ombra / estrusione 3D
+
+    cv.cvtColor(s, g, cv.COLOR_RGBA2GRAY, 0);
+
+    let threshVal = constrain(p1, 0, 255);
+    cv.threshold(g, b, threshVal, 255, invert ? cv.THRESH_BINARY : cv.THRESH_BINARY_INV);
+    b.copyTo(aux1);
+
+    let data1 = aux1.data;
+
+
+   let dripAmt = p3 * 2.0;
+    let droplets = [];
+    let microSpecks = [];
+
+    // 1. Distorsione organica di colatura gravitazionale e gocce (Drip & Stalactites anatomiche)
+    if (p3 > 0) {
+        t.randomSeed(42);
+        for (let x = 4; x < w - 4; x++) {
+            let nVal = precomputedNoiseX[(x * 43) & NOISE_MASK];
+            let wave = Math.sin(x * 0.048) * 0.5 + Math.sin(x * 0.137) * 0.35 + nVal * 0.3;
+            if (wave > 0.20) {
+                let colDrip = (wave - 0.20) * 2.6 * dripAmt;
+                if (colDrip > 4) {
+                    for (let y = h - 6; y >= 4; y--) {
+                        let idx = y * w + x;
+                        if (data1[idx] === 255 && data1[idx + w] === 0) {
+                            let dLen = Math.min(Math.round(colDrip), h - y - 8);
+                            if (dLen < 6) break;
+
+                            // Stalattite con stelo rastremato e bulbo allargato (Reference morphology)
+                            let maxBulbR = Math.max(2.0, Math.min(5.2, colDrip * 0.16));
+                            for (let d = 1; d <= dLen; d++) {
+                                let ty = y + d;
+                                let u = d / dLen;
+                                                                let wRad = 1.0;
+                                if (u < 0.20) {
+                                    wRad = 1.6 * (1.0 - u / 0.20) + 1.0;
+                                } else if (u < 0.65) {
+                                    wRad = 1.0; // Stelo sottile e lineare
+                                } else if (u <= 0.92) {
+                                    // Bulbo allargato della goccia sospesa
+                                    let bu = (u - 0.65) / (0.92 - 0.65);
+                                    wRad = 1.0 + maxBulbR * Math.sin(bu * Math.PI);
+                                } else {
+                                    // Punta squadrata finale
+                                    wRad = Math.max(0.6, 1.0 * (1.0 - (u - 0.92) / 0.08));
+                                }
+                            
+                                let irad = Math.round(wRad);
+                                for (let dx = -irad; dx <= irad; dx++) {
+                                    let px = x + dx;
+                                    if (px >= 2 && px < w - 2) {
+                                        data1[ty * w + px] = 255;
+                                    }
+                                }
+                            }
+
+                            // Goccia satellite staccata (Detached Squadrato Teardrop Capsule)
+                            if (dropMode !== 'off' && colDrip > 9 && dLen > 10) {
+                                let dropGap = Math.floor(dLen * 0.32) + 5;
+                                let dropY = y + dLen + dropGap;
+                                let dropR = Math.max(2, Math.min(6, Math.floor(colDrip * 0.15)));
+                                let dropLen = Math.round(dropR * 2.2);
+                                if (dropY + dropLen < h - 5) {
+                                    droplets.push({ x: x, y: dropY, r: dropR, len: dropLen });
+                                }
+
+                                // Micro-speck sporco e intricato attorno alla punta
+                                if (x % 5 === 0) {
+                                    let spY = dropY + dropLen + ((x * 11) % 14) + 3;
+                                    if (spY < h - 4) {
+                                        microSpecks.push({ x: x + ((x % 3) - 1) * 3, y: spY, size: (x % 2 === 0) ? 1.6 : 1.1 });
+                                    }
+                                }
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // 2. Erosione morfologica per il ridge interno (Cresta del rilievo 3D)
+    let baseDist = map(p2, 1, 40, 1, 14);
+    if (depthMode === 'deep') baseDist *= 1.35;
+    else if (depthMode === 'subtle') baseDist *= 0.7;
+    let bevelDist = Math.max(1, Math.round(baseDist));
+    let kSize = bevelDist * 2 + 1;
+    let kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, new cv.Size(kSize, kSize));
+    cv.erode(aux1, aux2, kernel);
+    kernel.delete();
+
+    let data2 = aux2.data;
+    let drawColor = (c === 'color' || c === 0 || !c) ? 0 : c;
+    t.randomSeed(42);
+
+    let grainStep = Math.max(1, Math.round(map(p4, 1, 15, 1, 5)));
+    const bayer = [
+        [ 0,  8,  2, 10],
+        [12,  4, 14,  6],
+        [ 3, 11,  1,  9],
+        [15,  7, 13,  5]
+    ];
+
+    // Se modalità SOLID: riempimento interno solido
+    if (agonMode === 'solid') {
+        t.noStroke();
+        t.fill(drawColor);
+        for (let y = 0; y < h; y += grainStep) {
+            for (let x = 0; x < w; x += grainStep) {
+                if (data2[y * w + x] === 255) {
+                    t.rect(x, y, grainStep + 0.2, grainStep + 0.2);
+                }
+            }
+        }
+    }
+
+    // 3. Ombreggiatura e stippling dither 3D direzionale nella fascia di rilievo
+    t.noStroke();
+    let gx = 0, gy = 0, dot = 0, bThresh = 0;
+
+let safeMargin = Math.max(6, bevelDist + 2);
+    for (let y = safeMargin; y < h - safeMargin; y += grainStep) {
+        for (let x = safeMargin; x < w - safeMargin; x += grainStep) {
+            let idx = y * w + x;
+            let isOuter = (data1[idx] === 255);
+            let isInner = (data2[idx] === 255);
+
+            if (agonMode === 'relief') {
+                if (isOuter) {
+                    gx = data1[idx + 1] - data1[idx - 1];
+                    gy = data1[idx + w] - data1[idx - w];
+                    dot = (gx * lx + gy * ly);
+                    bThresh = bayer[y & 3][x & 3] * 16;
+                    if (dot < -15 || (dot < 35 && bThresh > 75)) {
+                        t.fill(drawColor);
+                        t.rect(x, y, grainStep + 0.1, grainStep + 0.1);
+                    }
+                }
+            } else {
+                // Modalità OUTLINE: dither direzionale tra bordo esterno e cresta interna
+                if (isOuter && !isInner) {
+                    gx = data1[idx + 1] - data1[idx - 1];
+                    gy = data1[idx + w] - data1[idx - w];
+                    dot = (gx * lx + gy * ly);
+                    bThresh = bayer[y & 3][x & 3] * 16;
+                    if (dot < -12) {
+                        // Pendenza in ombra: dither fitto e profondo
+                        if (bThresh < 170) {
+                            t.fill(drawColor);
+                            t.rect(x, y, grainStep, grainStep);
+                        }
+                    } else if (dot < 10) {
+                        // Mezzitoni
+                        if (bThresh < 85) {
+                            t.fill(drawColor);
+                            t.rect(x, y, grainStep, grainStep);
+                        }
+                    } else {
+                        // Riflesso di luce: stipple rado
+                        if (bThresh < 25) {
+                            t.fill(drawColor);
+                            t.rect(x, y, grainStep, grainStep);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // 4. Tracciamento contorni vettoriali squadrati e rilievo estruso 3D
+    let coOuter = new cv.MatVector();
+    let coInner = new cv.MatVector();
+    cv.findContours(aux1, coOuter, hi, cv.RETR_LIST, cv.CHAIN_APPROX_NONE);
+    cv.findContours(aux2, coInner, hi, cv.RETR_LIST, cv.CHAIN_APPROX_NONE);
+
+    t.noFill();
+    t.stroke(drawColor);
+    t.strokeJoin(t.MITER || 'miter');
+    t.strokeCap(t.SQUARE || 'square');
+
+    let ptStep = (geomMode === 'raw') ? 3 : 2;
+
+    // Helper anti-riquadro perimetrale: scarta tassativamente qualsiasi contorno di cornice o bordo immagine
+function isFrameContour(cn, w, h) {
+        let br = cv.boundingRect(cn);
+        if (br.x <= 5 || br.y <= 5 || (br.x + br.width) >= w - 5 || (br.y + br.height) >= h - 5) {
+            if (br.width >= w - 15 || br.height >= h - 15) return true;
+        }
+        return false;
+    }
+    // Contorno esterno squadrato (Faceted)
+    t.strokeWeight(1.35);
+    let co1Size = coOuter.size();
+    for (let i = 0; i < co1Size; i++) {
+        let cn = coOuter.get(i);
+        let rows = cn.rows;
+        if (rows < 5 || isFrameContour(cn, w, h)) continue;
+        let pts = cn.data32S;
+        t.beginShape();
+        for (let k = 0; k < rows; k += ptStep) {
+            t.vertex(pts[k * 2], pts[k * 2 + 1]);
+        }
+        t.vertex(pts[0], pts[1]);
+        t.endShape(CLOSE);
+    }
+
+    // Contorno interno squadrato (Ridge)
+    t.strokeWeight(1.0);
+    let co2Size = coInner.size();
+    for (let i = 0; i < co2Size; i++) {
+        let cn = coInner.get(i);
+        let rows = cn.rows;
+        if (rows < 5 || isFrameContour(cn, w, h)) continue;
+        let pts = cn.data32S;
+        t.beginShape();
+        for (let k = 0; k < rows; k += ptStep) {
+            t.vertex(pts[k * 2], pts[k * 2 + 1]);
+        }
+        t.vertex(pts[0], pts[1]);
+        t.endShape(CLOSE);
+    }
+
+    // Rilievo 3D: Estrusione d'ombra sui bordi esterni orientati in ombra
+    let shadowDist = (depthMode === 'deep') ? 2.2 : (depthMode === 'balanced' ? 1.5 : 0.9);
+    let sox = sx * shadowDist;
+    let soy = sy * shadowDist;
+
+    t.strokeWeight(0.85);
+    for (let i = 0; i < co1Size; i++) {
+        let cn = coOuter.get(i);
+        let rows = cn.rows;
+        if (rows < 8 || isFrameContour(cn, w, h)) continue;
+        let pts = cn.data32S;
+        for (let k = 0; k < rows; k += ptStep) {
+            let nextK = (k + ptStep) % rows;
+            let x1 = pts[k * 2], y1 = pts[k * 2 + 1];
+            let x2 = pts[nextK * 2], y2 = pts[nextK * 2 + 1];
+            let chkX = Math.round(x1 + sx * 2.5);
+            let chkY = Math.round(y1 + sy * 2.5);
+            if (chkX >= 0 && chkX < w && chkY >= 0 && chkY < h && data1[chkY * w + chkX] === 0) {
+                t.line(x1 + sox, y1 + soy, x2 + sox, y2 + soy);
+            }
+        }
+    }
+
+    coOuter.delete();
+    coInner.delete();
+
+    
+    
+
+    // Micro-speck sporco e intricato (Dirty splatter dots)
+    if (dropMode !== 'off' && microSpecks.length > 0) {
+        t.noStroke();
+        t.fill(drawColor);
+        let maxSpecks = (dropMode === 'subtle') ? Math.min(30, microSpecks.length) : microSpecks.length;
+        for (let s = 0; s < maxSpecks; s++) {
+            let sp = microSpecks[s];
+            t.rect(sp.x, sp.y, sp.size, sp.size);
+        }
+    }
+}
+
+// --- GESTIONE MODALE EXPORT & DETERMINISTIC OFFLINE RENDERER ---
+function initExportModal() {
+    const btnOpen = document.getElementById('btnOpenExportModal');
+    const modal = document.getElementById('exportModal');
+    const closeBtn = document.getElementById('modalCloseBtn');
+    const cancelBtn = document.getElementById('modalCancelBtn');
+    const startExportBtn = document.getElementById('modalStartExportBtn');
+
+    const modalFormat = document.getElementById('modalFormat');
+    const modalResolution = document.getElementById('modalResolution');
+    const modalFps = document.getElementById('modalFps');
+    const modalBitrate = document.getElementById('modalBitrate');
+    const modalRangeType = document.getElementById('modalRangeType');
+    const modalCustomRange = document.getElementById('modalCustomRange');
+    const modalStartSec = document.getElementById('modalStartSec');
+    const modalEndSec = document.getElementById('modalEndSec');
+
+    // btnOpenExportModal is now hidden; the main entry point is btnExportSettings.
+    // Keep a no-op listener to avoid null reference errors.
+    if (btnOpen) {
+        btnOpen.addEventListener('click', () => {
+            if (!isVideoMode && !isGifMode) return;
+            pausePlaybackForStep();
+            let totalFrames = isGifMode ? Math.max(1, gifTotalFrames) : Math.max(1, Math.round(videoDuration * videoFps));
+            if (modalStartFrame) { modalStartFrame.value = 0; modalStartFrame.max = totalFrames - 1; }
+            if (modalEndFrame) { modalEndFrame.value = totalFrames - 1; modalEndFrame.max = totalFrames - 1; }
+            if (modalRangeType) { modalRangeType.value = 'all'; }
+            if (modalCustomRange) { modalCustomRange.style.display = 'none'; }
+            document.getElementById('modalProgressCont').style.display = 'none';
+            if (startExportBtn) { startExportBtn.disabled = false; startExportBtn.innerText = 'START FULL EXPORT'; }
+            if (cancelBtn) cancelBtn.innerText = 'CANCEL';
+            updateModalSummary();
+            modal.style.display = 'flex';
+        });
+    }
+
+    closeBtn.addEventListener('click', () => {
+        if (isExportRunning) {
+            if (confirm("L'esportazione è in corso. Vuoi annullarla?")) {
+                isExportAborted = true;
+                modal.style.display = 'none';
+            }
+        } else {
+            modal.style.display = 'none';
+        }
+    });
+
+    cancelBtn.addEventListener('click', () => {
+        if (isExportRunning) {
+            isExportAborted = true;
+            cancelBtn.innerText = "ABORTING...";
+        } else {
+            modal.style.display = 'none';
+        }
+    });
+
+    [modalFormat, modalResolution, modalFps, modalBitrate, modalRangeType, modalStartSec, modalEndSec].forEach(el => {
+        el.addEventListener('change', updateModalSummary);
+        el.addEventListener('input', updateModalSummary);
+    });
+
+    modalRangeType.addEventListener('change', () => {
+        modalCustomRange.style.display = modalRangeType.value === 'custom' ? 'flex' : 'none';
+        updateModalSummary();
+    });
+
+    startExportBtn.addEventListener('click', () => {
+        if (isExportRunning) return;
+        startDeterministicExport();
+    });
+}
+
+function updateModalSummary() {
+    const modalFormat = document.getElementById('modalFormat').value;
+    const scale = parseFloat(document.getElementById('modalResolution').value);
+    const modalFpsVal = document.getElementById('modalFps').value;
+    const rangeType = document.getElementById('modalRangeType').value;
+    const infoText = document.getElementById('modalInfoText');
+
+    let totalDurationSec = isGifMode ? (gifTotalFrames / (gifFps || 15)) : (videoDuration || 0);
+    let targetFps = modalFpsVal === 'native' ? (isGifMode ? gifFps : videoFps) : parseInt(modalFpsVal);
+    let totalSourceFrames = isGifMode ? Math.max(1, gifTotalFrames) : Math.max(1, Math.round(totalDurationSec * videoFps));
+
+    let startSec = 0;
+    let endSec = totalDurationSec;
+
+    if (rangeType === 'custom') {
+        const startInput = document.getElementById('modalStartSec');
+        const endInput = document.getElementById('modalEndSec');
+        startSec = constrain(parseFloat(startInput ? startInput.value : 0) || 0, 0, totalDurationSec);
+        endSec = constrain(parseFloat(endInput ? endInput.value : totalDurationSec) || totalDurationSec, startSec, totalDurationSec);
+    }
+
+    let startFrame = Math.round(startSec * (isGifMode ? gifFps : videoFps));
+    let endFrame = Math.min(totalSourceFrames - 1, Math.round(endSec * (isGifMode ? gifFps : videoFps)));
+    let renderFrameCount = Math.max(1, (endFrame - startFrame) + 1);
+
+    let outW = Math.round((sourceVideoW || 640) * scale);
+    let outH = Math.round((sourceVideoH || 360) * scale);
+    let estDuration = (renderFrameCount / targetFps).toFixed(1);
+
+    infoText.innerHTML = `
+        <strong>FORMAT:</strong> ${modalFormat.toUpperCase()} &nbsp;|&nbsp; 
+        <strong>DIMENSIONS:</strong> ${outW} &times; ${outH}px (${scale}x scale)<br>
+        <strong>RANGE:</strong> ${startSec.toFixed(1)}s &rarr; ${endSec.toFixed(1)}s (~${estDuration}s) &nbsp;|&nbsp; 
+        <strong>FRAMES:</strong> ${renderFrameCount} frames @ ${targetFps} fps
+    `;
+}
+
+function getBestMimeForFormat(format) {
+    if (format === 'mp4') {
+        const mp4Types = ['video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm'];
+        for (let t of mp4Types) {
+            if (window.MediaRecorder && MediaRecorder.isTypeSupported(t)) {
+                return { mime: t, ext: t.includes('mp4') ? 'mp4' : 'webm' };
+            }
+        }
+    } else {
+        const webmTypes = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
+        for (let t of webmTypes) {
+            if (window.MediaRecorder && MediaRecorder.isTypeSupported(t)) {
+                return { mime: t, ext: 'webm' };
+            }
+        }
+    }
+    return { mime: '', ext: 'webm' };
+}
+
+// --- MOTORE DETERMINISTICO DI RENDERING FRAME-BY-FRAME OFFLINE ---
+async function startDeterministicExport() {
+    isExportRunning = true;
+    isExportAborted = false;
+
+    const modalFormat = document.getElementById('modalFormat').value;
+    const scale = parseFloat(document.getElementById('modalResolution').value);
+    const modalFpsVal = document.getElementById('modalFps').value;
+    const modalBitrateVal = parseInt(document.getElementById('modalBitrate').value);
+    const rangeType = document.getElementById('modalRangeType').value;
+    const startFInput = parseInt(document.getElementById('modalStartFrame').value) || 0;
+    const endFInput = parseInt(document.getElementById('modalEndFrame').value) || 0;
+
+    let totalDurationSec = isGifMode ? (gifTotalFrames / (gifFps || 15)) : (videoDuration || 0);
+    let effectiveFps = isGifMode ? gifFps : videoFps;
+    let totalSourceFrames = isGifMode ? Math.max(1, gifTotalFrames) : Math.max(1, Math.round(totalDurationSec * effectiveFps));
+
+    let startSec = 0;
+    let endSec = totalDurationSec;
+    if (rangeType === 'custom') {
+        const startInput = document.getElementById('modalStartSec');
+        const endInput = document.getElementById('modalEndSec');
+        startSec = constrain(parseFloat(startInput ? startInput.value : 0) || 0, 0, totalDurationSec);
+        endSec = constrain(parseFloat(endInput ? endInput.value : totalDurationSec) || totalDurationSec, startSec, totalDurationSec);
+    }
+
+    let startFrame = Math.round(startSec * effectiveFps);
+    let endFrame = Math.min(totalSourceFrames - 1, Math.round(endSec * effectiveFps));
+    let totalFramesToExport = (endFrame - startFrame) + 1;
+
+    let targetFps = modalFpsVal === 'native' ? (isGifMode ? gifFps : videoFps) : parseInt(modalFpsVal);
+    let outW = Math.round((sourceVideoW || 640) * scale);
+    let outH = Math.round((sourceVideoH || 360) * scale);
+
+    const progressCont = document.getElementById('modalProgressCont');
+    const progressFill = document.getElementById('modalProgressFill');
+    const progressText = document.getElementById('modalProgressText');
+    const progressSub = document.getElementById('modalProgressSub');
+    const startExportBtn = document.getElementById('modalStartExportBtn');
+    const cancelBtn = document.getElementById('modalCancelBtn');
+
+ progressCont.style.display = 'block';
+    progressFill.style.width = '0%';
+    progressText.innerText = 'PREPARING EXPORT...';
+    progressSub.innerText = 'Initializing frame renderer...';
+    startExportBtn.disabled = true;
+    startExportBtn.innerText = 'EXPORTING...';
+    cancelBtn.innerText = "ABORT EXPORT";
+
+    // Forza il browser ad aggiornare l'interfaccia visiva prima di avviare il rendering dei frame
+    await new Promise(r => requestAnimationFrame(r));
+    await new Promise(r => setTimeout(r, 100));
+
+    // Canvas offscreen ad alta risoluzione
+    const exportGraphics = createGraphics(outW, outH);
+    exportGraphics.pixelDensity(1);
+
+    const styleMode = document.getElementById('styleSelect').value;
+    const p = [
+        parseFloat(document.getElementById('p1').value), 
+        parseFloat(document.getElementById('p2').value), 
+        parseFloat(document.getElementById('p3').value), 
+        parseFloat(document.getElementById('p4').value)
+    ];
+
+    let zipInstance = null;
+    let renderedBitmaps = [];
+
+    if (modalFormat === 'zip') {
+        if (typeof JSZip === 'undefined') {
+            alert("Libreria JSZip non caricata. Controlla la connessione internet.");
+            finishExport();
+            return;
+        }
+        zipInstance = new JSZip();
+    }
+
+    const savedImg = img;
+    const savedOriginalImg = originalImg;
+
+    try {
+        // FASE 1: RENDERING OFFLINE DETERMINISTICO FRAME-BY-FRAME
+        for (let f = startFrame; f <= endFrame; f++) {
+            if (isExportAborted) break;
+
+            let currentFrameIndex = f - startFrame + 1;
+            let pct = Math.round((currentFrameIndex / totalFramesToExport) * 100);
+            progressFill.style.width = pct + "%";
+            progressText.innerText = `PHASE 1: RENDERING FRAMES (${pct}%)`;
+            progressSub.innerText = `Processing Frame ${currentFrameIndex} of ${totalFramesToExport} @ ${outW}x${outH}`;
+
+            if (isGifMode && gifFrameBuffers && gifFrameBuffers[f]) {
+                exportGraphics.clear();
+                exportGraphics.background(255);
+                exportGraphics.drawingContext.drawImage(gifFrameBuffers[f], 0, 0, outW, outH);
+            } else if (videoEl) {
+                // Seek accurato del video con Promise su evento seeked
+                let targetTime = f / videoFps;
+                await new Promise((resolve) => {
+                    let onSeeked = () => {
+                        videoEl.removeEventListener('seeked', onSeeked);
+                        resolve();
+                    };
+                    videoEl.addEventListener('seeked', onSeeked);
+                    videoEl.currentTime = targetTime;
+                    setTimeout(onSeeked, 250); // Timeout di sicurezza anti-blocco
+                });
+
+                exportGraphics.clear();
+                exportGraphics.background(255);
+                exportGraphics.drawingContext.drawImage(videoEl, 0, 0, outW, outH);
+            }
+
+            // Applica lo stile attivo ad alta risoluzione
+            img = exportGraphics;
+            originalImg = exportGraphics;
+            markSourceMediaDirty(); // [OPT] Task 2: Sincronizza cache OpenCV per ogni frame esportato
+
+            if (cvLoaded) {
+                if (styleMode == "1") renderStyle01(exportGraphics, p[0], p[1], p[2], p[3], 0);
+                else if (styleMode == "2") renderStyle02(exportGraphics, p[0], p[1], p[2], 0);
+                else if (styleMode == "3") renderStyle03(exportGraphics, p[0], p[1], p[2], p[3], 0);
+                else if (styleMode == "4") renderStyle04(exportGraphics, p[0], p[1], p[2], p[3], 0);
+                else if (styleMode == "5") renderStyle05(exportGraphics, p[0], p[1], p[2], p[3]);
+                else if (styleMode == "6") renderStyle06(exportGraphics, p[0], p[1], p[2], p[3], 0);
+            }
+
+            // Salva frame renderizzato
+            if (modalFormat === 'zip') {
+                const blob = await new Promise(r => exportGraphics.canvas.toBlob(r, 'image/png'));
+                let fname = "frame_" + String(f).padStart(5, '0') + ".png";
+                zipInstance.file(fname, blob);
+            } else {
+                // Salva come ImageBitmap in memoria per encoding privo di drop frame
+                const bmp = await createImageBitmap(exportGraphics.canvas);
+                renderedBitmaps.push(bmp);
+            }
+
+            // Cede un ciclo al browser per mantenere la UI fluida e reattiva
+            await new Promise(r => setTimeout(r, 0));
+        }
+
+        if (isExportAborted) {
+            alert("Esportazione annullata dall'utente.");
+            cleanupBitmaps(renderedBitmaps);
+            finishExport();
+            return;
+        }
+
+        // FASE 2: ENCODING O COMPRESSIONE ZIP
+        if (modalFormat === 'zip') {
+            progressText.innerText = "PHASE 2: GENERATING ZIP ARCHIVE...";
+            progressSub.innerText = "Compressing PNG image sequence...";
+            
+            const zipContent = await zipInstance.generateAsync({ type: 'blob' }, (metadata) => {
+                let zipPct = Math.round(metadata.percent);
+                progressFill.style.width = zipPct + "%";
+                progressText.innerText = `PHASE 2: PACKING ZIP (${zipPct}%)`;
+            });
+
+            const url = URL.createObjectURL(zipContent);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `mycelium_frames_${outW}x${outH}_${Date.now()}.zip`;
+            a.click();
+            setTimeout(() => URL.revokeObjectURL(url), 10000);
+            finishExport(true);
+        } else {
+            // ENCODING VIDEO A FPS COSTANTI SENZA CALI DI FRAMERATE
+            progressText.innerText = `PHASE 2: ENCODING VIDEO @ ${targetFps} FPS...`;
+            progressSub.innerText = `Streaming ${renderedBitmaps.length} deterministic frames...`;
+
+            const playbackCanvas = document.createElement('canvas');
+            playbackCanvas.width = outW;
+            playbackCanvas.height = outH;
+            const pbCtx = playbackCanvas.getContext('2d');
+
+            if (renderedBitmaps.length > 0) {
+                pbCtx.drawImage(renderedBitmaps[0], 0, 0);
+            }
+
+            const stream = playbackCanvas.captureStream(targetFps);
+
+            // Audio passthrough se disponibile nel video originale
+            if (videoEl) {
+                try {
+                    let vStream = videoEl.captureStream ? videoEl.captureStream() : (videoEl.mozCaptureStream ? videoEl.mozCaptureStream() : null);
+                    if (vStream) {
+                        let aTracks = vStream.getAudioTracks();
+                        if (aTracks && aTracks.length > 0) stream.addTrack(aTracks[0].clone());
+                    }
+                } catch(e) {}
+            }
+
+            let mimeObj = getBestMimeForFormat(modalFormat);
+            let mediaRecorder = null;
+            try {
+                mediaRecorder = new MediaRecorder(stream, { mimeType: mimeObj.mime, videoBitsPerSecond: modalBitrateVal });
+            } catch(e) {
+                mediaRecorder = new MediaRecorder(stream);
+            }
+
+            let recChunks = [];
+            mediaRecorder.ondataavailable = (e) => {
+                if (e.data && e.data.size > 0) recChunks.push(e.data);
+            };
+
+            const encodingCompletePromise = new Promise((resolve) => {
+                mediaRecorder.onstop = () => {
+                    const finalBlob = new Blob(recChunks, { type: mimeObj.mime || 'video/webm' });
+                    const url = URL.createObjectURL(finalBlob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `mycelium_render_${outW}x${outH}_${targetFps}fps_${Date.now()}.${mimeObj.ext}`;
+                    a.click();
+                    setTimeout(() => URL.revokeObjectURL(url), 10000);
+                    cleanupBitmaps(renderedBitmaps);
+                    resolve();
+                };
+            });
+
+            mediaRecorder.start();
+
+            // Stream costante dei frame bitmap pre-renderizzati
+            let frameTimeMs = 1000 / targetFps;
+            let currentBmpIdx = 0;
+
+            await new Promise((resolve) => {
+                const intervalId = setInterval(() => {
+                    if (currentBmpIdx >= renderedBitmaps.length || isExportAborted) {
+                        clearInterval(intervalId);
+                        setTimeout(() => {
+                            if (mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+                            resolve();
+                        }, 200);
+                        return;
+                    }
+
+                    pbCtx.drawImage(renderedBitmaps[currentBmpIdx], 0, 0);
+                    let encPct = Math.round(((currentBmpIdx + 1) / renderedBitmaps.length) * 100);
+                    progressFill.style.width = encPct + "%";
+                    progressText.innerText = `PHASE 2: ENCODING VIDEO (${encPct}%)`;
+                    progressSub.innerText = `Frame ${currentBmpIdx + 1} of ${renderedBitmaps.length}`;
+                    currentBmpIdx++;
+                }, frameTimeMs);
+            });
+
+            await encodingCompletePromise;
+            finishExport(true);
+        }
+    } catch(err) {
+        console.error("Errore durante l'esportazione video:", err);
+        alert("Si è verificato un errore durante l'esportazione: " + err.message);
+        cleanupBitmaps(renderedBitmaps);
+        finishExport();
+    } finally {
+        img = savedImg;
+        originalImg = savedOriginalImg;
+        markSourceMediaDirty(); // [OPT] Task 2: Ripristina media sorgente originale per la viewport
+        exportGraphics.remove();
+    }
+}
+
+function cleanupBitmaps(bitmapList) {
+    if (!bitmapList) return;
+    for (let b of bitmapList) {
+        try { if (b && b.close) b.close(); } catch(e) {}
+    }
+    bitmapList.length = 0;
+}
+
+function finishExport(isSuccess = false) {
+    isExportRunning = false;
+    isExportAborted = false;
+    const startExportBtn = document.getElementById('modalStartExportBtn');
+    const cancelBtn = document.getElementById('modalCancelBtn');
+    const progressText = document.getElementById('modalProgressText');
+    const modal = document.getElementById('exportModal');
+
+    if (startExportBtn) startExportBtn.disabled = false;
+    if (cancelBtn) cancelBtn.innerText = "CLOSE";
+
+    if (isSuccess) {
+        if (progressText) progressText.innerText = "EXPORT COMPLETED SUCCESSFULLY! ★";
+        document.getElementById('status-bar').innerText = "Video export terminato con successo!";
+        setTimeout(() => {
+            if (modal) modal.style.display = 'none';
+        }, 1500);
+    }
+}
+
+// --- VIEWPORT RECORDING LIVE ---
+function toggleViewportRecording() {
+    if (isRecordingViewport) {
+        if (viewportRecorder && viewportRecorder.state !== 'inactive') {
+            viewportRecorder.stop();
+        }
+        return;
+    }
+
+    if (!window.MediaRecorder) {
+        alert("MediaRecorder non supportato in questo browser.");
+        return;
+    }
+
+    isRecordingViewport = true;
+    viewportChunks = [];
+
+    const mainCanvas = document.querySelector('#canvas-holder canvas');
+    if (!mainCanvas) return;
+
+    const stream = mainCanvas.captureStream(30);
+
+    if (isVideoMode && videoEl) {
+        try {
+            let vStream = videoEl.captureStream ? videoEl.captureStream() : (videoEl.mozCaptureStream ? videoEl.mozCaptureStream() : null);
+            if (vStream) {
+                let audioTracks = vStream.getAudioTracks();
+                if (audioTracks && audioTracks.length > 0) stream.addTrack(audioTracks[0].clone());
+            }
+        } catch(e) {}
+    }
+
+    let targetMime = getBestMimeForFormat('webm');
+    try {
+        viewportRecorder = new MediaRecorder(stream, { mimeType: targetMime.mime, videoBitsPerSecond: 25000000 });
+    } catch(e) {
+        viewportRecorder = new MediaRecorder(stream);
+    }
+
+    viewportRecorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) viewportChunks.push(e.data);
+    };
+
+    viewportRecorder.onstop = () => {
+        const blob = new Blob(viewportChunks, { type: targetMime.mime || 'video/webm' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `mycelium_viewport_rec_${Date.now()}.${targetMime.ext}`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
+
+        isRecordingViewport = false;
+        let btn = document.getElementById('expVideoRec');
+        if (btn) {
+            btn.innerText = "RECORD VIEWPORT (REC)";
+            btn.style.background = "";
+            btn.style.color = "";
+        }
+        document.getElementById('status-bar').innerText = "Registrazione viewport salvata!";
+    };
+
+    viewportRecorder.start(100);
+    let btn = document.getElementById('expVideoRec');
+    if (btn) {
+        btn.innerText = "■ STOP RECORDING";
+        btn.style.background = "#d00";
+        btn.style.color = "#fff";
+    }
+    document.getElementById('status-bar').innerText = "● Registrazione viewport live in corso...";
+}
+
+// --- EXPORT SINGOLO FRAME (PNG / SVG) ---
+function exportFile(col, format) {
+    let source = isVideoMode ? videoGraphics : (rawSourceMedia || originalImg || img);
+    let info = document.getElementById('modalInfoText');
+
+    if (!source) {
+        if (info) info.innerText = "Notice: Carica prima un'immagine o video per esportare!";
+        let sb = document.getElementById('status-bar');
+        if (sb) sb.innerText = "Export annullato: nessun media sorgente.";
+        return;
+    }
+
+    let qualitySelect = document.getElementById('exportQualitySelectModal');
+    let qualityScale = parseFloat(qualitySelect ? qualitySelect.value : 2) || 2;
+    
+    if (info) info.innerText = `Elaborazione export ${format.toUpperCase()} (${qualityScale}X)...`;
+
+    let exportCanvas = (format === 'svg') 
+        ? createGraphics(source.width, source.height, SVG) 
+        : createGraphics(source.width, source.height);
+
+    if (format !== 'svg') {
+        exportCanvas.pixelDensity(qualityScale);
+    }
+    exportCanvas.clear(); 
+    
+    let mode = document.getElementById('styleSelect').value;
+    let p = [
+        parseFloat(document.getElementById('p1').value), 
+        parseFloat(document.getElementById('p2').value), 
+        parseFloat(document.getElementById('p3').value), 
+        parseFloat(document.getElementById('p4').value)
+    ];
+    
+    let savedImg = img;
+    img = source;
+
+    try {
+        if (mode == "1") renderStyle01(exportCanvas, p[0], p[1], p[2], p[3], col);
+        else if (mode == "2") renderStyle02(exportCanvas, p[0], p[1], p[2], col);
+        else if (mode == "3") renderStyle03(exportCanvas, p[0], p[1], p[2], p[3], col);
+        else if (mode == "4") renderStyle04(exportCanvas, p[0], p[1], p[2], p[3], col);
+        else if (mode == "5") renderStyle05(exportCanvas, p[0], p[1], p[2], p[3]); 
+        else if (mode == "6") renderStyle06(exportCanvas, p[0], p[1], p[2], p[3], col); 
+    } catch(err) {
+        console.error("Errore durante render export:", err);
+    }
+    
+    img = savedImg;
+
+    let prefix = isVideoMode ? (isGifMode ? "mycelium_gif_frame" : "mycelium_video_frame") : "mycelium_export";
+    let scaleLabel = format !== 'svg' ? `_${qualityScale}x` : '';
+    let filename = `${prefix}${scaleLabel}.${format}`;
+
+    if (format === 'svg') {
+        try {
+            exportCanvas.save(filename);
+            if (info) info.innerText = `Export completato con successo: ${filename}`;
+        } catch(e) {
+            console.error("SVG save error:", e);
+            if (info) info.innerText = `Errore salvataggio SVG: ${e.message}`;
+        }
+    } else {
+        try {
+            let canvasElt = exportCanvas.elt || exportCanvas.canvas;
+            if (canvasElt && canvasElt.toBlob) {
+                canvasElt.toBlob((blob) => {
+                    if (blob) {
+                        let url = URL.createObjectURL(blob);
+                        let a = document.createElement('a');
+                        a.download = filename;
+                        a.href = url;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        setTimeout(() => URL.revokeObjectURL(url), 3000);
+                        if (info) info.innerText = `Export completato con successo: ${filename}`;
+                    } else {
+                        saveCanvas(exportCanvas, prefix + scaleLabel, format);
+                        if (info) info.innerText = `Export completato: ${filename}`;
+                    }
+                }, 'image/png');
+            } else {
+                saveCanvas(exportCanvas, prefix + scaleLabel, format);
+                if (info) info.innerText = `Export completato: ${filename}`;
+            }
+        } catch(e) {
+            console.warn("Blob download fallback to saveCanvas:", e);
+            saveCanvas(exportCanvas, prefix + scaleLabel, format);
+            if (info) info.innerText = `Export completato: ${filename}`;
+        }
+    }
+
+    let sb = document.getElementById('status-bar');
+    if (sb) sb.innerText = `File esportato: ${filename}`;
+
+    setTimeout(() => {
+        try { exportCanvas.remove(); } catch(e){}
+    }, 1500);
+}
+
+function windowResized() { 
+    updateCanvasSize(); 
+    redraw(); 
+}
+
+
+// =============================================
+// LOGO VIDEO & EASTER EGG (k1 hover / k2 click / reset to video on refresh)
+// Zero-latenza assoluta: riproduzione naturale fluida senza seek asincroni
+// =============================================
+(function() {
+    try {
+        localStorage.removeItem("myclm_logo_mode");
+    } catch(e) {}
+
+    const logoHeader = document.getElementById("logo-header");
+    if (!logoHeader) return;
+
+    setupVideoLogo();
+
+    function setupPngLogo() {
+        logoHeader.classList.remove("video-mode");
+        logoHeader.classList.add("png-mode");
+        logoHeader.innerHTML = "<img id=\"logo\" src=\"img/k2.png\" alt=\"MYCELIUM\" title=\"Click to reload\">";
+        const imgEl = document.getElementById("logo");
+        if (imgEl) {
+            imgEl.addEventListener("click", function() {
+                location.reload();
+            });
+        }
+    }
+
+    function setupVideoLogo() {
+        logoHeader.classList.remove("png-mode");
+        logoHeader.classList.add("video-mode");
+        logoHeader.innerHTML = "<video id=\"logo\" src=\"img/1_1.mp4\" muted playsinline preload=\"auto\" loop title=\"MYCELIUM\"></video>";
+        
+        const logoVid = document.getElementById("logo");
+        if (!logoVid) return;
+
+        logoVid.loop = true;
+        logoVid.playbackRate = 1.35; // Animazione rapida e reattiva
+
+        let stopTimer = null;
+
+        function freeze() {
+            clearTimeout(stopTimer);
+            logoVid.pause();
+        }
+
+        logoVid.addEventListener("loadeddata", function() {
+            logoVid.currentTime = 0;
+            freeze();
+        });
+        logoVid.addEventListener("canplay", function() {
+            if (logoVid.paused && logoVid.currentTime === 0) freeze();
+        });
+
+        // Risposta a latenza zero assoluta: NESSUN seek asincrono, riproduzione immediata
+        function playImmediately() {
+            if (logoVid.paused) {
+                logoVid.play().catch(() => {});
+            }
+            clearTimeout(stopTimer);
+            // Mantiene il play perfettamente fluido durante tutto il movimento dello slider
+            stopTimer = setTimeout(freeze, 250);
+        }
+
+        // Avvio istantaneo non appena il mouse/touch tocca o trascina un qualsiasi range slider
+        document.addEventListener("pointerdown", function(e) {
+            if (e.target && e.target.type === "range") playImmediately();
+        }, { passive: true });
+
+        document.addEventListener("mousedown", function(e) {
+            if (e.target && e.target.type === "range") playImmediately();
+        }, { passive: true });
+
+        document.addEventListener("input", function(e) {
+            if (e.target && e.target.type === "range") playImmediately();
+        }, { passive: true });
+
+        document.addEventListener("change", function(e) {
+            if (e.target && (e.target.type === "range" || e.target.tagName === "SELECT")) playImmediately();
+        }, { passive: true });
+
+        document.addEventListener("customSelectChanged", function() {
+            playImmediately();
+        });
+
+        // Stop immediato non appena si rilascia il cursore
+        window.addEventListener("pointerup", freeze, { passive: true });
+        window.addEventListener("mouseup", freeze, { passive: true });
+        window.addEventListener("touchend", freeze, { passive: true });
+
+        // Click sul video: sostituisce con k2.png senza salvare in localStorage
+        logoVid.addEventListener("click", function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            setupPngLogo();
+        });
+    }
+})();
+
+// =============================================
+// UNIFIED CUSTOM SELECT COMPONENT
+// Trasforma tutti i <select class="cselect-target">
+// nel componente custom con box ˄ ˅ e selezione aperta identica alla reference
+// =============================================
+(function() {
+    const chevronSvg = `
+        <svg width="7" height="10" viewBox="0 0 7 10">
+            <path d="M1 3.5 L3.5 1 L6 3.5" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="square"/>
+            <path d="M1 6.5 L3.5 9 L6 6.5" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="square"/>
+        </svg>
+    `;
+
+    function closeAllCustomSelects() {
+        document.querySelectorAll('.cselect-wrapper.cselect-open').forEach(w => {
+            w.classList.remove('cselect-open');
+        });
+    }
+
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.cselect-wrapper')) {
+            closeAllCustomSelects();
+        }
+    });
+
+    function initCustomSelect(selectEl) {
+        if (!selectEl || selectEl._cselectWrapper) return;
+
+        selectEl.style.display = 'none';
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'cselect-wrapper';
+        selectEl._cselectWrapper = wrapper;
+        selectEl.parentNode.insertBefore(wrapper, selectEl.nextSibling);
+
+        function render() {
+            wrapper.innerHTML = '';
+            const options = Array.from(selectEl.options);
+            const selectedIndex = selectEl.selectedIndex >= 0 ? selectEl.selectedIndex : 0;
+            const currentOpt = options[selectedIndex] || { text: '', value: '' };
+
+            // 1. Vista chiusa
+            const closedBox = document.createElement('div');
+            closedBox.className = 'cselect-closed';
+            closedBox.innerHTML = `
+                <span class="cselect-label">${currentOpt.text}</span>
+                <div class="cselect-arrow">${chevronSvg}</div>
+            `;
+            closedBox.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const wasOpen = wrapper.classList.contains('cselect-open');
+                closeAllCustomSelects();
+                if (!wasOpen) {
+                    wrapper.classList.add('cselect-open');
+                }
+            });
+
+            // 2. Lista aperta
+            const dropList = document.createElement('div');
+            dropList.className = 'cselect-list';
+
+            options.forEach(function(opt, idx) {
+                const item = document.createElement('div');
+                const isSelected = idx === selectedIndex;
+                item.className = 'cselect-item' + (isSelected ? ' cselect-active' : '');
+                item.dataset.value = opt.value;
+
+                if (idx === 0) {
+                    item.classList.add('cselect-top-item');
+                    item.innerHTML = `
+                        <span class="cselect-item-text">${opt.text}</span>
+                        <span class="cselect-check">✓</span>
+                        <div class="cselect-arrow cselect-close-trigger">${chevronSvg}</div>
+                    `;
+                } else {
+                    item.innerHTML = `
+                        <span class="cselect-item-text">${opt.text}</span>
+                        <span class="cselect-check">✓</span>
+                    `;
+                }
+
+                item.addEventListener('click', function(e) {
+                    // Cliccare la freccia in alto chiude senza cambiare
+                    if (e.target.closest('.cselect-close-trigger')) {
+                        e.stopPropagation();
+                        closeAllCustomSelects();
+                        return;
+                    }
+                    e.stopPropagation();
+                    selectEl.value = opt.value;
+                    selectEl.selectedIndex = idx;
+                    selectEl.dispatchEvent(new Event('change', { bubbles: true }));
+                    selectEl.dispatchEvent(new Event('input', { bubbles: true }));
+                    document.dispatchEvent(new Event('customSelectChanged'));
+                    closeAllCustomSelects();
+                    render();
+                });
+
+                dropList.appendChild(item);
+            });
+
+            wrapper.appendChild(closedBox);
+            wrapper.appendChild(dropList);
+        }
+
+        selectEl.addEventListener('change', function() {
+            render();
+        });
+
+        render();
+    }
+
+    // Inizializza tutti i select con classe cselect-target
+    function initAll() {
+        document.querySelectorAll('select.cselect-target').forEach(initCustomSelect);
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initAll);
+    } else {
+        initAll();
+    }
+})();
+
+</script>
+</body>
+</html>
