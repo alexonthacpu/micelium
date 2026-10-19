@@ -3,11 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <title>MYCLM VERSION 16.0</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
-    <script src="https://unpkg.com/p5.js-svg@1.3.1/dist/p5.svg.js"></script>
+    <link href="vendor/fonts.css" rel="stylesheet">
+    <script src="vendor/p5-1.4.2.min.js"></script>
+    <script src="vendor/p5.svg-1.3.1.js"></script>
     <style>
         @font-face {
             font-family: 'WTGaramono';
@@ -605,7 +603,7 @@
             border-color: #000000 !important;
         }
 </style>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="vendor/jszip-3.10.1.min.js"></script>
 </head>
 <body>
 
@@ -952,7 +950,7 @@
 </div>
 
 
-<script async src="https://docs.opencv.org/4.5.4/opencv.js" onload="cvReady()"></script>
+<script defer src="vendor/opencv-4.5.4.js" onload="cvReady()"></script>
 <script>
 let img, originalImg;
 let cvLoaded = false;
@@ -1094,9 +1092,14 @@ let viewportRecorder = null;
 let viewportChunks = [];
 
 function cvReady() { 
+    if (typeof cv.Mat !== 'function') {
+        cv.onRuntimeInitialized = cvReady;
+        return;
+    }
     cvLoaded = true; 
     let sb = document.getElementById('status-bar');
     if (sb) sb.innerText = "Version 16.0 | OpenCV: Online | Scroll to Zoom"; 
+    triggerSmartRedraw();
 }
 
 // --- NORMALIZZAZIONE INTELLIGENTE RISOLUZIONE MEDIA ---
