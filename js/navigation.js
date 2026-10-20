@@ -29,15 +29,20 @@
         if (!menu.hidden) menu.querySelector('button').focus();
     };
     document.addEventListener('click', event => { if (!nav.contains(event.target)) close(); });
-    nav.addEventListener('keydown', event => {
-        if (event.key === 'Escape') { close(true); event.stopPropagation(); }
+    document.addEventListener('keydown', event => {
+        if (menu.hidden) return;
+        if (event.key === 'Escape') { close(true); event.stopPropagation(); return; }
         const buttons = [...menu.querySelectorAll('button')];
         if (['ArrowDown', 'ArrowUp'].includes(event.key) && !menu.hidden) {
             event.preventDefault();
             buttons[(buttons.indexOf(document.activeElement) + (event.key === 'ArrowDown' ? 1 : -1) + buttons.length) % buttons.length].focus();
         }
+    }, true);
+    nav.addEventListener('focusout', event => {
+        // Safari can blur a button on pointer-down without focusing the next one.
+        // A null destination must not hide the target before its click fires.
+        if (event.relatedTarget && !nav.contains(event.relatedTarget)) close();
     });
-    nav.addEventListener('focusout', event => { if (!nav.contains(event.relatedTarget)) close(); });
     nav.querySelector('#menu-about').onclick = () => { close(); window.MiceliumAnimate.pause(); about.showModal(); };
     about.addEventListener('close', () => toggle.focus());
     about.addEventListener('click', event => { if (event.target === about) about.close(); });
