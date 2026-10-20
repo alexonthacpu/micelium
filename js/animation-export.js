@@ -33,7 +33,11 @@
         abort(signal); return { blob, ext: 'zip' };
     }
     async function video({ render, duration, fps, signal, progress, type }) {
-        const canvas = render(0), stream = canvas.captureStream(fps);
+        const first = render(0), canvas = document.createElement('canvas');
+        canvas.width = first.width; canvas.height = first.height;
+        const context = canvas.getContext('2d');
+        context.drawImage(first, 0, 0);
+        const stream = canvas.captureStream(fps);
         let recorder;
         try { recorder = new MediaRecorder(stream, { mimeType: type.mime, videoBitsPerSecond: 12000000 }); }
         catch (error) { stream.getTracks().forEach(track => track.stop()); throw error; }
@@ -60,14 +64,11 @@
                     abort(signal);
                     const elapsed = Math.min(duration, (performance.now() - started) / 1000);
                     if (elapsed >= duration) { recorder.stop(); return; }
-                    const frame = Math.min(Math.ceil(duration * fps) - 1, Math.floor(elapsed * fps)); render(frame / fps);
+                    const frame = Math.min(Math.ceil(duration * fps) - 1, Math.floor(elapsed * fps));
+                    // Paint every capture, including cached/held compositions, onto a dedicated surface.
+                    context.drawImage(render(frame / fps), 0, 0);
                     const track = stream.getVideoTracks()[0];
                     if (track.requestFrame) track.requestFrame();
-                    else {
-                        // Mark held/cached frames dirty so their duration is captured too.
-                        const ctx = canvas.getContext('2d'); ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
-                        ctx.globalCompositeOperation = 'copy'; ctx.globalAlpha = 1; ctx.drawImage(canvas, 0, 0); ctx.restore();
-                    }
                     progress(elapsed / duration, `Recording ${elapsed.toFixed(1)} / ${duration.toFixed(1)} s`);
                     timer = setTimeout(step, Math.max(1, (frame + 1) / fps * 1000 - (performance.now() - started)));
                 } catch (error) { fail(error); }

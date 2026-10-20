@@ -115,10 +115,25 @@ const useWebKit = process.env.BROWSER === 'webkit';
                 const v = document.createElement('video'); v.muted = true;
                 const timer = setTimeout(() => { URL.revokeObjectURL(url); reject(new Error('Video decode timeout')); }, 10000);
                 v.onerror = () => { clearTimeout(timer); URL.revokeObjectURL(url); reject(new Error('Exported video cannot decode')); };
-                v.onloadeddata = () => { clearTimeout(timer); const info = { width: v.videoWidth, height: v.videoHeight, duration: v.duration }; v.src = ''; URL.revokeObjectURL(url); resolve(info); };
+                const inspectFrame = () => {
+                    clearTimeout(timer);
+                    const c = document.createElement('canvas'); c.width = v.videoWidth; c.height = v.videoHeight;
+                    const g = c.getContext('2d'); g.drawImage(v, 0, 0);
+                    const pixels = g.getImageData(0, 0, c.width, c.height).data;
+                    let min = 255, max = 0;
+                    for (let i = 0; i < pixels.length; i += 4) { min = Math.min(min, pixels[i]); max = Math.max(max, pixels[i]); }
+                    const info = { width: v.videoWidth, height: v.videoHeight, duration: v.duration, contrast: max - min, corner: pixels[0] };
+                    v.pause(); v.src = ''; URL.revokeObjectURL(url); resolve(info);
+                };
+                // loadeddata can precede delivery of the decoded frame to the compositor.
+                v.onloadeddata = () => {
+                    v.requestVideoFrameCallback(inspectFrame);
+                    v.play().catch(reject);
+                };
                 v.src = url; v.load();
             }), data.toString('base64'));
             assert.equal(decoded.width, 160); assert.equal(decoded.height, 96);
+            assert.ok(decoded.contrast > 15, 'decoded video contains the rendered artwork'); assert.ok(decoded.corner < 15, 'video uses the dark composition palette');
             if (Number.isFinite(decoded.duration)) assert.ok(decoded.duration > .8 && decoded.duration < 1.5);
             assert.equal((await state()).time, before.time); await page.click('#animation-export-cancel');
             console.log(`PASS: exported ${type.ext} video decodes at the selected size`);
