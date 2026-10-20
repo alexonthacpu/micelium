@@ -29,12 +29,20 @@ const { chromium } = require('playwright');
         await page.waitForFunction(() => MiceliumEditor.ready());
         await page.evaluate(() => MiceliumAnimate.toggle(true));
         for (let style = 1; style <= 6; style++) {
+            // Isolate each style; scrubbing an old timeline would restore old style keys.
+            await page.evaluate(() => MiceliumAnimate.pause());
+            const ids = await page.evaluate(() => MiceliumAnimate.snapshot().frames.map(key => key.id));
+            for (const id of ids) {
+                await page.locator(`.animate-key[data-id="${id}"]`).click();
+                await page.click('#animate-delete');
+            }
+            await page.click('#animate-stop');
             await page.evaluate(value => {
                 MiceliumAnimate.pause();
                 const control = document.getElementById('styleSelect');
                 control.value = String(value); control.dispatchEvent(new Event('change', { bubbles: true }));
             }, style);
-            await page.click('#animate-stop'); await page.click('#animate-add');
+            await page.click('#animate-add');
             await page.locator('#animate-scrub').evaluate(el => {
                 el.value = 5; el.dispatchEvent(new Event('input', { bubbles: true }));
             });
@@ -46,9 +54,10 @@ const { chromium } = require('playwright');
             await page.waitForTimeout(2400);
             const state = await page.evaluate(() => MiceliumAnimate.snapshot());
             assert.ok(state.playing && state.time > 0);
-            console.log(`Style ${style}: ${await page.locator('#animate-performance').textContent()} · cap ${state.previewLimit}px`);
+            assert.equal(await page.locator('#styleSelect').inputValue(), String(style));
+            console.log(`Style ${style}: ${await page.locator('#animate-performance').textContent()} · original source pixels`);
             await page.click('#animate-pause');
-            assert.equal(await page.evaluate(() => img.width), 1024, 'full source must be restored');
+            assert.equal(await page.evaluate(() => img.width), 1024, 'source must remain unchanged');
         }
         assert.deepEqual(errors, []);
     } finally { await browser.close(); }

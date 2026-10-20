@@ -44,9 +44,9 @@
         longEdge: $('animate-resolution').value === 'source' ? Math.min(1920, Math.max(editor.image().width, editor.image().height)) : Number($('animate-resolution').value),
         cameraBase, dark: document.getElementById('viewport').classList.contains('viewport-dark')
     });
-    function releasePreview() { composition.dispose(); }
+    function disposeComposition() { composition.dispose(); }
     function initializeImage() {
-        cameraBase = editor.capture().zoomSlider || 1; releasePreview();
+        cameraBase = editor.capture().zoomSlider || 1; disposeComposition();
         if (!frames.length) {
             time = 0; const key = { id: String(nextId++), time: 0, values: editor.capture(), easing: 'linear' };
             frames = [key]; selected = key.id;
@@ -136,7 +136,8 @@
     }
     function pause() {
         cancelAnimationFrame(raf); raf = 0; playing = false;
-        $('animate-play').disabled = false; $('animate-pause').disabled = true; renderTime();
+        $('animate-play').disabled = false; $('animate-pause').disabled = true;
+        $('animate-play').textContent = time > 0 && time < duration ? 'RESUME' : 'PLAY';
     }
     function tick(stamp) {
         if (!playing) return;
@@ -191,12 +192,12 @@
     }
     $('animate-close').onclick = () => toggle(false);
     $('animate-play').onclick = play;
-    $('animate-pause').onclick = () => { pause(); renderKeys(); };
+    $('animate-pause').onclick = () => { pause(); renderKeys(); message('Paused on this frame. Resume continues here; Restart plays from zero.'); };
     $('animate-stop').onclick = () => { pause(); selected = null; seek(0); renderKeys(); };
     $('animate-restart').onclick = () => { pause(); selected = null; seek(0); play(); };
     $('animate-prev').onclick = () => jumpKey(frames.filter(frame => frame.time < time - .001).pop());
     $('animate-next').onclick = () => jumpKey(frames.find(frame => frame.time > time + .001));
-    $('animate-resolution').onchange = () => { pause(); releasePreview(); editor.render(); };
+    $('animate-resolution').onchange = () => { pause(); disposeComposition(); editor.render(); };
     $('animate-seek-time').onchange = event => {
         if (!Number.isFinite(event.target.valueAsNumber)) { renderTime(); return; }
         pause(); selected = null; seek(event.target.valueAsNumber); renderKeys();
@@ -318,7 +319,9 @@
     curve.addEventListener('pointercancel', () => { curveHandle = null; });
     // Cancel playback before existing control listeners handle user edits.
     document.getElementById('ui').addEventListener('input', event => { if (active) pause(); }, true);
-    document.getElementById('ui').addEventListener('change', event => { if (active) pause(); }, true);
+    document.getElementById('ui').addEventListener('change', () => {
+        if (active) { pause(); message('Parameters changed. Save a keyframe before scrubbing or exporting.'); }
+    }, true);
     document.getElementById('ui').addEventListener('click', event => {
         if (active && event.target.closest('#btnZoomIn, #btnZoomOut')) pause();
     }, true);
@@ -331,10 +334,10 @@
     document.getElementById('viewport').addEventListener('wheel', () => { if (playing) pause(); }, { capture: true, passive: true });
     document.getElementById('btnExportSettings').addEventListener('click', () => pause(), true);
     document.addEventListener('micelium:media-loading', event => {
-        pause(false); releasePreview();
+        pause(false); disposeComposition();
         if (event.detail.animated && active) toggle(false);
     });
-    document.addEventListener('micelium:image-ready', () => { if (active) initializeImage(); else releasePreview(); message('Image ready. Save your starting parameters, then add an end key.'); editor.render(); });
+    document.addEventListener('micelium:image-ready', () => { if (active) initializeImage(); else disposeComposition(); message('Image ready. Save your starting parameters, then add an end key.'); editor.render(); });
     document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
     document.addEventListener('keydown', event => {
         if (!active || exporting || event.target.closest('input,select,textarea,button,dialog') || event.ctrlKey || event.metaKey || event.altKey) return;

@@ -76,6 +76,7 @@ const useWebKit = process.env.BROWSER === 'webkit';
         await setValue('#animate-key-time', 5);
         assert.equal((await snapshot()).frames.find(f => f.id === '2').time, 5);
         console.log('PASS: custom Bezier handles/inputs and pointer/keyboard keyframe movement');
+        await page.locator('#animate-retime').uncheck();
         await setValue('#animate-duration', 20); assert.equal((await snapshot()).duration, 20);
         await setValue('#animate-scrub', 20); await page.click('#animate-add');
         await setValue('#animate-duration', 15); assert.equal((await snapshot()).duration, 20);

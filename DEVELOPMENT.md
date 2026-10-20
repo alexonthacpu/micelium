@@ -51,56 +51,92 @@ are not application entry points.
 
 ## Menu and Animate
 
-The top-right menu opens About, Animate and a viewport-only dark palette.
-Dark mode composites the rendered canvas to invert its colors; source pixels,
-style parameters and explicit PNG/SVG export palettes stay unchanged. The
-preference is stored locally when browser storage is available.
+The top-right menu opens About, Animate and viewport dark mode. Ordinary PNG/SVG
+exports retain their existing explicit palettes. Animation compositions and
+animation exports follow the selected viewport palette.
 
-Open Animate and load a still image (the existing sidebar upload also works).
-Adjust sidebar parameters and add a keyframe, scrub to another time, change
-parameters and add another. Adding at the same time updates that keyframe.
-Play requires two keys. Duration can be set from 15 to 20 seconds. Shortening is
-rejected if it would discard later keys. Drag keys, edit their time, or use
-Left/Right (0.05 s, Shift: 0.5 s); Delete removes the selected key.
+Load a still image: Animate saves an initial key at zero. Adjust the sidebar
+and save the key; seek to another time and add the next one. **End Key** saves
+the current parameters at the duration endpoint. Duration accepts 1–30 seconds.
+**Retime Keys** stretches all key times and the playhead proportionally by
+default. Uncheck it to retain absolute timing; shortening is rejected if later
+keys would be lost. Drag markers, edit key time, use Left/Right (0.05 s, Shift:
+0.5 s), or delete the selected key. Previous/Next Key and numeric Seek are also
+available. Save sidebar changes to keys before moving the playhead/exporting.
 
-Choose the selected key's outgoing easing: Linear, Ease In, Ease Out, Ease
-In-Out or Custom Bezier. Custom handles can be dragged or edited numerically.
-Numeric parameters and zoom interpolate within a style. Style changes and
-non-numeric switches apply at the next keyframe to avoid mixing incompatible
-parameter meanings. Before the first key and after the last, values are held.
+Click a transition strip between keys to select its easing without moving the
+playhead. Strips show their own curves; the editor identifies the interval.
+Linear, Ease In/Out, Ease In-Out and custom Bezier are available. Drag handles
+or edit coordinates; changes update the current frame live, coalesced by RAF.
+Numeric parameters and zoom interpolate; styles/switches change at keys.
+Before the first key and after the last, values hold.
 
-Playback uses one time-based requestAnimationFrame loop, targets the display's
-refresh rate, and reduces preview source resolution when render cost or frame
-intervals exceed the frame budget. The source starts at a maximum 480 px edge
-and can reduce to 160 px. This changes preview detail while playing; Pause,
-Stop and export restore the full source. FPS is measured and displayed rather
-than guaranteed on every device/style/image. Editing controls, exporting,
-closing Animate or hiding the page pauses playback. Existing image/video/GIF
-workflows are retained; Animate itself uses still images. Replacing the image
-or closing/reopening Animate preserves keys in the current page session.
-Reloading the page does not save the timeline. Animation movie export is not
-part of this editor; existing PNG/SVG buttons export the current parameter state.
+**Pause** freezes the displayed frame without changing quality. **Resume**
+continues there, **Restart** plays from zero, **Stop** returns to zero without
+playing, and **Loop** repeats the duration. Keys persist when closing/reopening
+Animate during this page session; they are not stored across page reloads.
+The existing video/GIF player remains separate; Animate uses still images.
 
-Modules are scoped under `js/`: timeline math, the existing-sketch adapter,
-Animate, and navigation. Feature CSS is scoped in `css/editor.css`.
+### Matching preview and output
 
-Additional checks, with the server running for the browser check:
+The viewport shows the composition fitted to the available area. Its selected
+720/1080/1920-pixel long edge, or source size capped at 1920, determines export
+size. Source aspect ratio is kept, with even dimensions for video codecs.
+The initial camera is full-image framing; keyed zoom is relative to that
+baseline. Double-click fits the camera back to this framing. Resizing the
+viewport changes display fitting, not exported composition coordinates.
+
+One shared renderer uses the same original normalized source, frame parameters,
+camera, deterministic random seed and palette for preview and export. The
+source is no longer downsampled during playback, which previously changed
+stroke density/geometry and caused a jump on pause. Unchanged frames are cached.
+Playback remains time-based; expensive styles may reduce FPS rather than
+silently reduce detail. Measured FPS is shown; 60 FPS is not guaranteed for
+all images/hardware. Original style equations and PNG/SVG exports are retained.
+
+### Animation export
+
+**Export Animation** opens format/FPS controls with progress and cancellation:
+
+- WebM/MP4 are shown only when the browser reports recording support. Video
+  records the composition in real time; heavy rendering can skip frames. Keep
+  this tab visible. The extension matches the actual selected container.
+- PNG sequence ZIP renders every frame at `frame index / fps`, independent of
+  rendering speed. It includes `animation.json` with duration, dimensions,
+  camera, palette and saved keys. Frames include zero and exclude the terminal
+  endpoint; a non-integral duration×FPS rounds up to include timestamps below
+  the duration. Source image pixels are not embedded in the JSON.
+
+Video uses native MediaRecorder and ZIP uses the already vendored JSZip: no
+new application dependency or CDN. Export snapshots the saved timeline, pauses
+playback, and restores the prior playhead and parameter draft after completion,
+cancellation or errors. Cancellation downloads no partial file. Hiding the tab
+cancels the export to avoid incorrect recording. PNG payload is capped at
+192 MB to bound memory; reduce resolution/FPS if the cap is exceeded. PNG ZIP
+remains available when no recording codec is available.
+
+The modules under `js/` separate timeline math, existing-sketch adaptation,
+composition rendering, export encoding, export dialog, Animate and navigation.
+Feature CSS remains scoped under `css/`.
+
+Checks (serve the app for browser suites):
 
 ```sh
 node --test tests/animation-core.test.cjs
+node tests/smoke.cjs
 node tests/editor.cjs
+node tests/navigation.cjs
+node tests/animation-workflow.cjs
 ```
 
-These cover easing math and boundaries, real menu/dialog interactions, image
-loading, keyframe CRUD and dragging, custom Bezier, scrubbing, duration rules,
-play/pause/stop/resume/end, palette inversion without changing PNG output, and
-basic video upload/play/pause with Animate isolated from the video player.
-The existing smoke suite still checks all six styles and PNG/SVG exports.
-
-For an observational six-style playback benchmark with a generated 1024×1024
-source, run `node tests/playback-performance.cjs`. It reports the measured FPS
-and adaptive preview cap, then verifies the original source size after pausing.
-Timings vary with hardware and load; this is not a universal 60 FPS assertion.
+Set `BROWSER=webkit` to run browser suites in Playwright WebKit. Workflow tests
+exercise all six composition styles, 1–30 seconds and retiming, live transition
+editing, pause/resume/restart/stop/loop, real PNG ZIP frame counts/metadata,
+byte-identical preview/export samples, video recording/decoding when supported,
+and cancellation/restoration. Existing suites check original PNG/SVG export,
+image/video upload and menu behavior with external requests blocked.
+`node tests/playback-performance.cjs` reports observational FPS on a generated
+1024×1024 source; it does not assert a universal frame rate.
 
 
 ## Navigation compatibility checks
