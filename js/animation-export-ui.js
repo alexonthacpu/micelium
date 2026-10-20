@@ -42,7 +42,7 @@
             const canvas = renderer.render(window.MiceliumTimeline.sample(keys, 0), config).canvas;
             await window.MiceliumAnimationExport.run({
                 duration: saved.duration, fps, signal: controller.signal, type: types.find(type => type.ext === $('format').value),
-                metadata: { width: canvas.width, height: canvas.height, dark: config.dark, cameraBase: config.cameraBase, keyframes: keys },
+                metadata: { width: canvas.width, height: canvas.height, dark: config.dark, cameraBase: config.cameraBase, detail: config.detail, keyframes: keys },
                 render: time => renderer.render(window.MiceliumTimeline.sample(keys, time), config).canvas,
                 progress: (value, text) => { $('progress').value = value; $('status').textContent = text; }
             });

@@ -94,7 +94,7 @@ const useWebKit = process.env.BROWSER === 'webkit';
             return { count: names.length, metadata: JSON.parse(await z.file('animation.json').async('string')), images };
         }, bytes.toString('base64'));
         assert.equal(zip.count, 15); assert.equal(zip.metadata.duration, 1); assert.equal(zip.metadata.fps, 15);
-        assert.equal(zip.metadata.width, 160); assert.equal(zip.metadata.height, 96); assert.equal(zip.metadata.dark, true);
+        assert.equal(zip.metadata.detail, '480'); assert.equal(zip.metadata.width, 160); assert.equal(zip.metadata.height, 96); assert.equal(zip.metadata.dark, true);
         assert.deepEqual(zip.images, expected); assert.equal((await state()).time, before.time); assert.equal(await pixels(), beforePixels);
         console.log('PASS: actual ZIP, 15 PNGs, metadata and byte-identical preview/export samples');
         await page.click('#animation-export-cancel'); await set('#animate-duration', 30); await page.click('#animate-export'); await page.selectOption('#animation-export-fps', '60');
@@ -131,6 +131,29 @@ const useWebKit = process.env.BROWSER === 'webkit';
             await page.click('#animation-export-cancel'); await set('#animate-duration', 1);
             console.log('PASS: video cancellation produces no partial download');
         } else console.log('UNAVAILABLE: video recording codec; PNG sequence verified');
+        const large = await page.evaluate(async base64 => {
+            const image = new Image(); image.src = 'data:image/png;base64,' + base64; await image.decode();
+            const c = document.createElement('canvas'); c.width = 960; c.height = 576; c.getContext('2d').drawImage(image, 0, 0, 960, 576);
+            return c.toDataURL().split(',')[1];
+        }, fixture);
+        await page.locator('#animate-source').setInputFiles({ name: 'large.png', mimeType: 'image/png', buffer: Buffer.from(large, 'base64') });
+        await page.waitForFunction(() => MiceliumEditor.image().width === 960);
+        for (const detail of ['480', '720', 'source']) {
+            await page.selectOption('#animate-detail', detail);
+            const check = await page.evaluate(() => {
+                const r = new MiceliumComposition(MiceliumEditor);
+                const c = r.render(MiceliumEditor.capture(), MiceliumAnimate.compositionSettings());
+                const result = { equal: c.canvas.toDataURL() === MiceliumAnimate.frameCanvas().toDataURL(), source: MiceliumEditor.image().width, processing: r.processing?.width || null };
+                r.dispose(); return result;
+            });
+            assert.equal(check.source, 960); assert.equal(check.processing, detail === 'source' ? null : Number(detail)); assert.equal(check.equal, true);
+        }
+        await page.selectOption('#animate-detail', '480'); await page.click('#animate-stop'); await page.click('#animate-play'); await page.waitForTimeout(150);
+        assert.equal(await page.evaluate(() => {
+            const image = MiceliumAnimate.frameCanvas().toDataURL(); MiceliumAnimate.pause(); MiceliumEditor.render();
+            return image === MiceliumAnimate.frameCanvas().toDataURL() && MiceliumEditor.image().width === 960;
+        }), true);
+        console.log('PASS: fixed detail profiles preserve the original source and exact paused pixels on a large image');
         await page.screenshot({ path: '/tmp/micelium-animation-workflow.png' });
         assert.deepEqual(errors, []); assert.deepEqual(external, []);
         console.log('PASS: zero browser errors or external requests');

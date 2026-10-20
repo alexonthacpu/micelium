@@ -86,10 +86,13 @@ The initial camera is full-image framing; keyed zoom is relative to that
 baseline. Double-click fits the camera back to this framing. Resizing the
 viewport changes display fitting, not exported composition coordinates.
 
-One shared renderer uses the same original normalized source, frame parameters,
-camera, deterministic random seed and palette for preview and export. The
-source is no longer downsampled during playback, which previously changed
-stroke density/geometry and caused a jump on pause. Unchanged frames are cached.
+One shared renderer uses the same frame parameters, camera, deterministic
+random seed, processing detail and palette for preview and export. DETAIL is
+fixed: Balanced (480 px edge), Fine (720 px), or Source (the original normalized
+image). A processing copy is shared by playback, pause and export; the original
+image remains unmodified. Changing DETAIL explicitly can change fine style
+geometry, but Play/Pause never changes it automatically. This replaces the old
+adaptive downsampling and jump on pause. Unchanged frames are cached.
 Playback remains time-based; expensive styles may reduce FPS rather than
 silently reduce detail. Measured FPS is shown; 60 FPS is not guaranteed for
 all images/hardware. Original style equations and PNG/SVG exports are retained.

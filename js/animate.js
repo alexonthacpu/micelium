@@ -11,6 +11,7 @@
         <label>DURATION <input id="animate-duration" type="number" min="1" max="30" step="0.1" value="15" aria-label="Animation duration in seconds"> S</label>
         <label class="animate-loop-label" title="Stretch keyframes proportionally when changing duration"><input id="animate-retime" type="checkbox" checked> RETIME KEYS</label>
         <label>FRAME <select id="animate-resolution" aria-label="Composition resolution"><option value="720">720 PX</option><option value="1080">1080 PX</option><option value="1920">1920 PX</option><option value="source">SOURCE (MAX 1920)</option></select></label>
+        <label>DETAIL <select id="animate-detail" aria-label="Animation detail" title="Fixed detail shared by preview and export"><option value="480">BALANCED</option><option value="720">FINE</option><option value="source">SOURCE</option></select></label>
         <span id="animate-frame-size" class="editor-note"></span><button id="animate-export">EXPORT ANIMATION</button>
         <button id="animate-close" aria-label="Close Animate">×</button></header>
         <div class="animate-body"><div class="animate-sequence">
@@ -42,7 +43,7 @@
     const current = () => frames.find(f => f.id === selected);
     const settings = () => ({
         longEdge: $('animate-resolution').value === 'source' ? Math.min(1920, Math.max(editor.image().width, editor.image().height)) : Number($('animate-resolution').value),
-        cameraBase, dark: document.getElementById('viewport').classList.contains('viewport-dark')
+        cameraBase, detail: $('animate-detail').value, dark: document.getElementById('viewport').classList.contains('viewport-dark')
     });
     function disposeComposition() { composition.dispose(); }
     function initializeImage() {
@@ -197,7 +198,7 @@
     $('animate-restart').onclick = () => { pause(); selected = null; seek(0); play(); };
     $('animate-prev').onclick = () => jumpKey(frames.filter(frame => frame.time < time - .001).pop());
     $('animate-next').onclick = () => jumpKey(frames.find(frame => frame.time > time + .001));
-    $('animate-resolution').onchange = () => { pause(); disposeComposition(); editor.render(); };
+    $('animate-resolution').onchange = $('animate-detail').onchange = () => { pause(); disposeComposition(); editor.render(); };
     $('animate-seek-time').onchange = event => {
         if (!Number.isFinite(event.target.valueAsNumber)) { renderTime(); return; }
         pause(); selected = null; seek(event.target.valueAsNumber); renderKeys();
