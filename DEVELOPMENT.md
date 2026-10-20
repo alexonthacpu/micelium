@@ -101,3 +101,22 @@ For an observational six-style playback benchmark with a generated 1024×1024
 source, run `node tests/playback-performance.cjs`. It reports the measured FPS
 and adaptive preview cap, then verifies the original source size after pausing.
 Timings vary with hardware and load; this is not a universal 60 FPS assertion.
+
+
+## Navigation compatibility checks
+
+```sh
+node tests/navigation.cjs
+BROWSER=webkit node tests/navigation.cjs
+BROWSER=webkit node tests/smoke.cjs
+BROWSER=webkit node tests/editor.cjs
+```
+
+WebKit runs require the Playwright WebKit browser and its platform libraries.
+The navigation check exercises native pointer/keyboard actions and a macOS
+Safari-style button-focus policy: pointer-down blurs the active button without
+focusing the clicked button. A null `focusout.relatedTarget` must leave the menu
+visible until click dispatch. Outside clicks, known outside focus targets and
+Escape still close it. Linux WebKit coverage supplements, but does not replace,
+a manual check in Safari on macOS. The missing upstream p5.svg.js.map is a
+DevTools source-map reference, not an application runtime script dependency.

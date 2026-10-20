@@ -1,8 +1,9 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs/promises');
-const { chromium } = require('playwright');
+const { chromium, webkit } = require('playwright');
+const useWebKit = process.env.BROWSER === 'webkit';
 (async () => {
-    const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium', args: ['--no-sandbox'] });
+    const browser = await (useWebKit ? webkit : chromium).launch(useWebKit ? {} : { executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium', args: ['--no-sandbox'] });
     try {
         const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
         const errors = [], external = [];
