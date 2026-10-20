@@ -2081,7 +2081,8 @@ function loadVideoFile(file) {
 }
 
 // --- INTERAZIONE MOUSE (PAN & ZOOM) ---
-function mousePressed(event) { 
+function mousePressed(event) {
+    if (window.MiceliumAnimate?.ownsViewport()) return;
     const ev = event || window.event;
     if (ev && ev.target) {
         const el = ev.target.nodeType === 3 ? ev.target.parentElement : ev.target;
@@ -2143,6 +2144,7 @@ function readStyleParameters() {
 
 function draw() {
     if (!img) return;
+    if (window.MiceliumAnimate?.drawComposition(this)) return;
 
     if (isVideoMode) {
         if (isGifMode && gifFrameBuffers && gifFrameBuffers.length > 0) {
@@ -2186,31 +2188,17 @@ function draw() {
     
     const p = readStyleParameters();
 
-    const fullSource = img;
-    const livePreview = window.MiceliumAnimate?.getPreviewSource();
-    if (livePreview) img = livePreview;
-    try {
-        // Rendering vettoriale diretto ad altissima definizione sul canvas principale
-        clear();
-        background(255);
-        push();
-        translate(viewX, viewY);
-        scale(zoom * fullSource.width / img.width);
-        translate(-img.width / 2, -img.height / 2);
-
-        if (cvLoaded) {
-            if (mode == "1") renderStyle01(this, p[0], p[1], p[2], p[3], 0);
-            else if (mode == "2") renderStyle02(this, p[0], p[1], p[2], 0);
-            else if (mode == "3") renderStyle03(this, p[0], p[1], p[2], p[3], 0);
-            else if (mode == "4") renderStyle04(this, p[0], p[1], p[2], p[3], 0);
-            else if (mode == "5") renderStyle05(this, p[0], p[1], p[2], p[3]);
-            else if (mode == "6") renderStyle06(this, p[0], p[1], p[2], p[3], 0);
-        }
-        pop();
-        window.MiceliumViewport?.finishFrame(drawingContext);
-    } finally {
-        img = fullSource;
+    clear(); background(255); push();
+    translate(viewX, viewY); scale(zoom); translate(-img.width / 2, -img.height / 2);
+    if (cvLoaded) {
+        if (mode == "1") renderStyle01(this, p[0], p[1], p[2], p[3], 0);
+        else if (mode == "2") renderStyle02(this, p[0], p[1], p[2], 0);
+        else if (mode == "3") renderStyle03(this, p[0], p[1], p[2], p[3], 0);
+        else if (mode == "4") renderStyle04(this, p[0], p[1], p[2], p[3], 0);
+        else if (mode == "5") renderStyle05(this, p[0], p[1], p[2], p[3]);
+        else if (mode == "6") renderStyle06(this, p[0], p[1], p[2], p[3], 0);
     }
+    pop(); window.MiceliumViewport?.finishFrame(drawingContext);
 }
 
 // --- STYLE 01: TECHNO ORGANIC ---
@@ -3680,7 +3668,10 @@ function windowResized() {
 </script>
 <script defer src="js/animation-core.js"></script>
 <script defer src="js/editor-bridge.js"></script>
+<script defer src="js/animation-renderer.js"></script>
+<script defer src="js/animation-export.js"></script>
 <script defer src="js/animate.js"></script>
+<script defer src="js/animation-export-ui.js"></script>
 <script defer src="js/navigation.js"></script>
 </body>
 </html>
