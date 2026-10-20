@@ -57,14 +57,26 @@
             viewY += (dimensions.h - height) / 2;
             updateCanvasSize();
         },
-        // Source pixels are static during an animation. Keep the OpenCV source cache.
-        preview(maxEdge) {
-            if (!img || Math.max(img.width, img.height) <= maxEdge) return null;
-            const ratio = maxEdge / Math.max(img.width, img.height);
-            const buffer = createGraphics(Math.max(1, Math.round(img.width * ratio)), Math.max(1, Math.round(img.height * ratio)));
-            buffer.pixelDensity(1);
-            buffer.drawingContext.drawImage(img.canvas, 0, 0, buffer.width, buffer.height);
-            return buffer;
+        paintComposition(target, state, cameraBase, dark) {
+            const zoom = (state.zoomSlider || 1) / Math.max(.001, cameraBase);
+            const fit = Math.min(target.width / img.width, target.height / img.height);
+            const p = ['p1', 'p2', 'p3', 'p4'].map(id => state[id]);
+            target.clear(); target.background(255); target.push();
+            try {
+                // Legacy styles seed the target but sometimes call global random().
+                // Seed both to make a frame independent of the previous render.
+                randomSeed(42);
+                target.translate(target.width / 2, target.height / 2);
+                target.scale(fit * zoom); target.translate(-img.width / 2, -img.height / 2);
+                const renderers = [null, renderStyle01, renderStyle02, renderStyle03, renderStyle04, renderStyle05, renderStyle06];
+                if (state.styleSelect === '2') renderStyle02(target, p[0], p[1], p[2], 0);
+                else renderers[Number(state.styleSelect)](target, ...p, 0);
+            } finally { target.pop(); }
+            if (dark) {
+                const ctx = target.drawingContext; ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
+                ctx.globalCompositeOperation = 'difference'; ctx.fillStyle = '#fff';
+                ctx.fillRect(0, 0, target.canvas.width, target.canvas.height); ctx.restore();
+            }
         }
     };
 })();

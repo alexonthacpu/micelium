@@ -74,3 +74,35 @@
     #animate-curve { height: 80px; }
     #editor-nav { top: 10px; right: 10px; }
 }
+/* Fixed animation frame and editable transition intervals. */
+#viewport.animate-view, #viewport.animate-view:active { cursor: default !important; }
+#animate-panel .animate-header { flex-wrap: wrap; }
+#animate-panel #animate-export { margin-left: auto; background: #000; color: #fff; }
+#animate-panel #animate-close { margin-left: 0; }
+#animate-panel #animate-frame-size { white-space: nowrap; }
+#animate-panel .animate-transport { flex-wrap: wrap; gap: 7px; }
+#animate-panel .animate-loop-label { display: flex; align-items: center; gap: 4px; }
+#animate-panel input[type="checkbox"] { margin: 0; accent-color: #000; }
+#animate-panel #animate-track { height: 99px; }
+#animate-markers .animate-key { top: 26px; }
+#animate-playhead { z-index: 2; }
+#animate-segments .animate-segment { position: absolute; top: 51px; height: 43px; padding: 0; border: 1px solid #bbb; background: #fff; color: #000; overflow: hidden; touch-action: manipulation; }
+#animate-segments .animate-segment[aria-pressed="true"] { border-color: #000; background: #eee; }
+#animate-segments .animate-segment:hover { background: #eee; color: #000; }
+.animate-segment svg { position: absolute; inset: 2px 4px 9px; width: calc(100% - 8px); height: 30px; pointer-events: none; }
+.animate-segment path { stroke: #000; stroke-width: 1; fill: none; vector-effect: non-scaling-stroke; }
+.animate-segment span { position: absolute; bottom: 1px; left: 5px; font-size: 8px; white-space: nowrap; pointer-events: none; }
+#animate-transition { min-height: 13px; color: #000; }
+#animate-panel #animate-curve { height: 112px; }
+#animation-export-dialog { width: min(460px, calc(100vw - 32px)); padding: 22px; border: 1px solid #000; background: #fff; color: #000; font-family: var(--font-mono); font-size: 11px; }
+#animation-export-dialog::backdrop { background: rgb(0 0 0 / 35%); }
+#animation-export-dialog header, #animation-export-dialog footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+#animation-export-dialog h2 { font-size: 11px; font-weight: 400; letter-spacing: 1.3px; }
+#animation-export-dialog button, #animation-export-dialog select { appearance: auto; border: 1px solid #000; border-radius: 0; background: #fff; color: #000; font: inherit; padding: 7px 10px; cursor: pointer; }
+#animation-export-dialog button:hover { background: #000; color: #fff; }
+#animation-export-dialog button:disabled { opacity: .4; cursor: default; }
+#animation-export-dialog fieldset { display: flex; flex-wrap: wrap; gap: 16px; padding: 12px 0; margin: 0; border: 0; }
+#animation-export-dialog label { display: flex; flex-direction: column; gap: 7px; font-size: 9px; }
+#animation-export-progress { width: 100%; height: 5px; accent-color: #000; }
+#animation-export-status { min-height: 28px; line-height: 1.5; }
+#animation-export-dialog footer { justify-content: flex-end; border-top: 1px dotted #aaa; padding-top: 14px; }
