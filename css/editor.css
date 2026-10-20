@@ -75,7 +75,8 @@
     #editor-nav { top: 10px; right: 10px; }
 }
 /* Fixed animation frame and editable transition intervals. */
-#viewport.animate-view, #viewport.animate-view:active { cursor: default !important; }
+#viewport.animate-view { cursor: grab; touch-action: none; }
+#viewport.animate-view.dragging { cursor: grabbing; }
 #animate-panel .animate-header { flex-wrap: wrap; }
 #animate-panel #animate-export { margin-left: auto; background: #000; color: #fff; }
 #animate-panel #animate-close { margin-left: 0; }

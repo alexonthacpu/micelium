@@ -83,19 +83,34 @@ The viewport shows the composition fitted to the available area. Its selected
 720/1080/1920-pixel long edge, or source size capped at 1920, determines export
 size. Source aspect ratio is kept, with even dimensions for video codecs.
 The initial camera is full-image framing; keyed zoom is relative to that
-baseline. Double-click fits the camera back to this framing. Resizing the
-viewport changes display fitting, not exported composition coordinates.
+baseline. The inspection camera is separate: drag to pan, use two-finger scroll
+for pan and pinch or Ctrl/Cmd/Alt + scroll to zoom around the cursor. Two-touch
+pinch and Safari gesture events are supported. **Fit View** or double-click
+resets inspection only. Inspection remains available during playback and pause;
+it never changes keys, sampled parameters, time, or exported composition.
+Resizing the viewport changes display fitting, not composition coordinates.
 
 One shared renderer uses the same frame parameters, camera, deterministic
 random seed, processing detail and palette for preview and export. DETAIL is
-fixed: Balanced (480 px edge), Fine (720 px), or Source (the original normalized
-image). A processing copy is shared by playback, pause and export; the original
+fixed: Source (the original normalized image, selected by default), Balanced
+(480 px edge), or Fine (720 px). A processing copy is shared by playback, pause and export; the original
 image remains unmodified. Changing DETAIL explicitly can change fine style
 geometry, but Play/Pause never changes it automatically. This replaces the old
 adaptive downsampling and jump on pause. Unchanged frames are cached.
 Playback remains time-based; expensive styles may reduce FPS rather than
 silently reduce detail. Measured FPS is shown; 60 FPS is not guaranteed for
-all images/hardware. Original style equations and PNG/SVG exports are retained.
+all images/hardware. The viewport replays native Path2D geometry at display pixel
+density; zoom never magnifies the export bitmap. Classic image navigation also
+reuses geometry: style/OpenCV calculations are needed only when source/style
+parameters change. Input bursts are coalesced with RAF instead of a 75 ms slider
+throttle; parameter edits no longer invalidate unchanged source pixels. Paths
+retain their original draw order, fill and stroke settings (no merging or
+simplification). Only the current scene is kept per viewport; animation geometry
+is reused for zoom-only keyframes. Playback draws the scene directly to the
+viewport; the export-size bitmap is rasterized only when requested. Capturing
+geometry does not also draw an unused intermediate frame. Original style equations and PNG/SVG formats
+are retained. Still exports seed randomness explicitly so cached viewport draws
+cannot change export output.
 
 ### Animation export
 
@@ -130,13 +145,17 @@ node tests/smoke.cjs
 node tests/editor.cjs
 node tests/navigation.cjs
 node tests/animation-workflow.cjs
+node tests/viewport-navigation.cjs
 ```
 
 Set `BROWSER=webkit` to run browser suites in Playwright WebKit. Workflow tests
 exercise all six composition styles, 1–30 seconds and retiming, live transition
 editing, pause/resume/restart/stop/loop, real PNG ZIP frame counts/metadata,
 byte-identical preview/export samples, video recording/decoding when supported,
-and cancellation/restoration. Existing suites check original PNG/SVG export,
+and cancellation/restoration. Viewport tests exercise all six cached classic
+styles, compare retained paths with fresh high-resolution rendering at 2x,
+verify camera gestures/drag/Fit, coalescing, and unchanged keys, fractional
+parameters, palette, playback and composition pixels. Existing suites check original PNG/SVG export,
 image/video upload and menu behavior with external requests blocked.
 `node tests/playback-performance.cjs` reports observational FPS on a generated
 1024×1024 source; it does not assert a universal frame rate.
