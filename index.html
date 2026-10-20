@@ -1078,10 +1078,10 @@ function initPrecomputedNoise() {
 }
 initPrecomputedNoise();
 
-// Invalida la cache sorgente media
+// Invalidate styled geometry; parameter edits do not change source pixels.
 function invalidateRenderCache() {
     if (typeof markStyleDirty === "function") markStyleDirty();
-    markSourceMediaDirty();
+    stillDrawingKey = null;
 }
 
 
@@ -1355,11 +1355,11 @@ function setup() {
         });
     });
 
-    // [OPT] Task 1: Ascolto controlli sidebar con debouncing/throttling sugli slider continui
+    // Sidebar inputs share one full-quality update per animation frame.
     document.querySelectorAll('input, select').forEach(el => {
         if (!['zoomSlider', 'videoTimeline', 'videoLoop', 'videoSpeed', 'exportQualitySelect', 
               'modalFormat', 'modalResolution', 'modalFps', 'modalBitrate', 'modalRangeType', 'modalStartFrame', 'modalEndFrame', 'previewNormSelect'].includes(el.id)) {
-            // [OPT] Su 'input' (trascinamento slider UI a 60fps) applica debounce/throttle di 75ms
+            // Coalesce high-frequency slider input without changing processing quality.
             el.addEventListener('input', triggerParamRedrawDebounced);
             // [OPT] Su 'change' (rilascio del mouse o selezione select) aggiorna immediatamente
             el.addEventListener('change', triggerParamRedrawImmediate);
@@ -1439,64 +1439,27 @@ function setup() {
     updateUI(); 
 }
 
-// [OPT] Task 1: Debouncing / Throttling per triggerSmartRedraw su controlli UI (75ms)
-let paramRedrawTimeout = null;
-let lastParamRedrawTime = 0;
-const PARAM_THROTTLE_MS = 75; // Finestra di debounce/throttle bilanciata (75ms)
-
+// Coalesce UI input to one full-quality render per display frame.
 let paramRafId = null;
 function triggerParamRedrawDebounced() {
-    if (typeof markStyleDirty === "function") markStyleDirty();
     invalidateRenderCache();
-    let now = performance.now();
-    let isPlaying = (isVideoMode && videoEl && !videoEl.paused) || (isGifMode && !isGifPaused);
-    if (isPlaying || (!originalImg && !isVideoMode)) return;
-
-    if (now - lastParamRedrawTime >= PARAM_THROTTLE_MS) {
-        if (paramRedrawTimeout) {
-            clearTimeout(paramRedrawTimeout);
-            paramRedrawTimeout = null;
-        }
-        lastParamRedrawTime = now;
-        if (!paramRafId) {
-            paramRafId = requestAnimationFrame(() => {
-                paramRafId = null;
-                redraw();
-            });
-        }
-    } else {
-        if (paramRedrawTimeout) clearTimeout(paramRedrawTimeout);
-        paramRedrawTimeout = setTimeout(() => {
-            paramRedrawTimeout = null;
-            lastParamRedrawTime = performance.now();
-            if (!paramRafId) {
-                paramRafId = requestAnimationFrame(() => {
-                    paramRafId = null;
-                    redraw();
-                });
-            }
-        }, PARAM_THROTTLE_MS - (now - lastParamRedrawTime));
-    }
+    const playing = (isVideoMode && videoEl && !videoEl.paused) || (isGifMode && !isGifPaused);
+    if (playing || (!originalImg && !isVideoMode) || paramRafId) return;
+    paramRafId = requestAnimationFrame(() => { paramRafId = null; redraw(); });
 }
 
 function triggerParamRedrawImmediate() {
-    if (typeof markStyleDirty === "function") markStyleDirty();
-    if (paramRedrawTimeout) {
-        clearTimeout(paramRedrawTimeout);
-        paramRedrawTimeout = null;
-    }
     invalidateRenderCache();
-    lastParamRedrawTime = performance.now();
-    let isPlaying = (isVideoMode && videoEl && !videoEl.paused) || (isGifMode && !isGifPaused);
-    if (!isPlaying && (originalImg || isVideoMode)) {
-        redraw();
-    }
+    if (paramRafId) { cancelAnimationFrame(paramRafId); paramRafId = null; }
+    const playing = (isVideoMode && videoEl && !videoEl.paused) || (isGifMode && !isGifPaused);
+    if (!playing && (originalImg || isVideoMode)) redraw();
 }
 
+let navigationRaf = 0;
 function triggerSmartRedraw() {
     let isPlaying = (isVideoMode && videoEl && !videoEl.paused) || (isGifMode && !isGifPaused);
-    if (!isPlaying && (originalImg || isVideoMode)) {
-        redraw();
+    if (!isPlaying && (originalImg || isVideoMode) && !navigationRaf) {
+        navigationRaf = requestAnimationFrame(() => { navigationRaf = 0; redraw(); });
     }
 }
 
@@ -2142,6 +2105,7 @@ function readStyleParameters() {
     return ['p1', 'p2', 'p3', 'p4'].map(id => animated?.[id] ?? parseFloat(document.getElementById(id).value));
 }
 
+let stillDrawing = null, stillDrawingKey = null, stillDrawingSource = null;
 function draw() {
     if (!img) return;
     if (window.MiceliumAnimate?.drawComposition(this)) return;
@@ -2190,14 +2154,25 @@ function draw() {
 
     clear(); background(255); push();
     translate(viewX, viewY); scale(zoom); translate(-img.width / 2, -img.height / 2);
-    if (cvLoaded) {
-        if (mode == "1") renderStyle01(this, p[0], p[1], p[2], p[3], 0);
-        else if (mode == "2") renderStyle02(this, p[0], p[1], p[2], 0);
-        else if (mode == "3") renderStyle03(this, p[0], p[1], p[2], p[3], 0);
-        else if (mode == "4") renderStyle04(this, p[0], p[1], p[2], p[3], 0);
-        else if (mode == "5") renderStyle05(this, p[0], p[1], p[2], p[3]);
-        else if (mode == "6") renderStyle06(this, p[0], p[1], p[2], p[3], 0);
-    }
+    const paint = () => {
+        randomSeed(42);
+        if (cvLoaded) {
+            if (mode == "1") renderStyle01(this, p[0], p[1], p[2], p[3], 0);
+            else if (mode == "2") renderStyle02(this, p[0], p[1], p[2], 0);
+            else if (mode == "3") renderStyle03(this, p[0], p[1], p[2], p[3], 0);
+            else if (mode == "4") renderStyle04(this, p[0], p[1], p[2], p[3], 0);
+            else if (mode == "5") renderStyle05(this, p[0], p[1], p[2], p[3]);
+            else if (mode == "6") renderStyle06(this, p[0], p[1], p[2], p[3], 0);
+        }
+    };
+    if (!isVideoMode && window.MiceliumDrawing && cvLoaded) {
+        const state = window.MiceliumEditor.capture(); delete state.zoomSlider;
+        const key = JSON.stringify([currentSourceMediaVersion, state]);
+        if (stillDrawingSource !== img || stillDrawingKey !== key) {
+            stillDrawing = window.MiceliumDrawing.capture(drawingContext, paint);
+            stillDrawingKey = key; stillDrawingSource = img;
+        } else stillDrawing.draw(drawingContext);
+    } else paint();
     pop(); window.MiceliumViewport?.finishFrame(drawingContext);
 }
 
@@ -3374,6 +3349,8 @@ function exportFile(col, format) {
     img = source;
 
     try {
+        // Keep export independent of cached viewport draws and previous exports.
+        randomSeed(42);
         if (mode == "1") renderStyle01(exportCanvas, p[0], p[1], p[2], p[3], col);
         else if (mode == "2") renderStyle02(exportCanvas, p[0], p[1], p[2], col);
         else if (mode == "3") renderStyle03(exportCanvas, p[0], p[1], p[2], p[3], col);
@@ -3668,7 +3645,9 @@ function windowResized() {
 </script>
 <script defer src="js/animation-core.js"></script>
 <script defer src="js/editor-bridge.js"></script>
+<script defer src="js/retained-drawing.js"></script>
 <script defer src="js/animation-renderer.js"></script>
+<script defer src="js/animation-viewport.js"></script>
 <script defer src="js/animation-export.js"></script>
 <script defer src="js/animate.js"></script>
 <script defer src="js/animation-export-ui.js"></script>

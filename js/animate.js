@@ -2,7 +2,7 @@
     'use strict';
     const { clamp, sample, upsert, presets, ease } = window.MiceliumTimeline;
     const editor = window.MiceliumEditor;
-    const composition = new window.MiceliumComposition(editor);
+    const composition = new window.MiceliumComposition(editor, { retainDrawing: true });
     const panel = document.createElement('section');
     panel.id = 'animate-panel'; panel.setAttribute('data-editor-overlay', ''); panel.hidden = true;
     panel.setAttribute('aria-label', 'Animation editor');
@@ -11,8 +11,8 @@
         <label>DURATION <input id="animate-duration" type="number" min="1" max="30" step="0.1" value="15" aria-label="Animation duration in seconds"> S</label>
         <label class="animate-loop-label" title="Stretch keyframes proportionally when changing duration"><input id="animate-retime" type="checkbox" checked> RETIME KEYS</label>
         <label>FRAME <select id="animate-resolution" aria-label="Composition resolution"><option value="720">720 PX</option><option value="1080">1080 PX</option><option value="1920">1920 PX</option><option value="source">SOURCE (MAX 1920)</option></select></label>
-        <label>DETAIL <select id="animate-detail" aria-label="Animation detail" title="Fixed detail shared by preview and export"><option value="480">BALANCED</option><option value="720">FINE</option><option value="source">SOURCE</option></select></label>
-        <span id="animate-frame-size" class="editor-note"></span><button id="animate-export">EXPORT ANIMATION</button>
+        <label>DETAIL <select id="animate-detail" aria-label="Animation detail" title="Fixed detail shared by preview and export"><option value="480">BALANCED</option><option value="720">FINE</option><option value="source" selected>SOURCE</option></select></label>
+        <button id="animate-fit" title="Drag to pan; pinch or Ctrl/⌘ + scroll to zoom. Fit resets the view without changing keyframes or export.">FIT VIEW</button><span id="animate-view-zoom" class="editor-note">100%</span><span id="animate-frame-size" class="editor-note"></span><button id="animate-export">EXPORT ANIMATION</button>
         <button id="animate-close" aria-label="Close Animate">×</button></header>
         <div class="animate-body"><div class="animate-sequence">
         <div class="animate-transport"><button id="animate-play">PLAY</button><button id="animate-pause" disabled>PAUSE</button><button id="animate-restart" title="Play from the beginning">RESTART</button><button id="animate-stop" title="Pause and return to zero">STOP</button><button id="animate-prev" aria-label="Previous keyframe">‹ KEY</button><button id="animate-next" aria-label="Next keyframe">KEY ›</button>
@@ -45,9 +45,12 @@
         longEdge: $('animate-resolution').value === 'source' ? Math.min(1920, Math.max(editor.image().width, editor.image().height)) : Number($('animate-resolution').value),
         cameraBase, detail: $('animate-detail').value, dark: document.getElementById('viewport').classList.contains('viewport-dark')
     });
+    const viewport = new window.MiceliumAnimationViewport(document.getElementById('viewport'),
+        () => active && !exporting && editor.ready(), () => { if (!playing) editor.render(); });
+    $('animate-fit').onclick = () => viewport.reset();
     function disposeComposition() { composition.dispose(); }
     function initializeImage() {
-        cameraBase = editor.capture().zoomSlider || 1; disposeComposition();
+        cameraBase = editor.capture().zoomSlider || 1; disposeComposition(); viewport.reset();
         if (!frames.length) {
             time = 0; const key = { id: String(nextId++), time: 0, values: editor.capture(), easing: 'linear' };
             frames = [key]; selected = key.id;
@@ -328,11 +331,10 @@
     }, true);
     document.getElementById('viewport').addEventListener('dblclick', event => {
         if (!active || !editor.ready()) return;
-        event.preventDefault(); event.stopImmediatePropagation(); pause();
-        editor.apply({ ...editor.capture(), zoomSlider: cameraBase }); editor.render();
-        message('Camera fitted to the composition. Save a keyframe to keep this framing.');
+        if (event.target !== event.currentTarget && !event.target.closest('#canvas-holder')) return;
+        event.preventDefault(); event.stopImmediatePropagation(); viewport.reset();
+        message('View fitted. Drag to pan; pinch or Ctrl/⌘ + scroll to zoom. Inspection does not change export.');
     }, true);
-    document.getElementById('viewport').addEventListener('wheel', () => { if (playing) pause(); }, { capture: true, passive: true });
     document.getElementById('btnExportSettings').addEventListener('click', () => pause(), true);
     document.addEventListener('micelium:media-loading', event => {
         pause(false); disposeComposition();
@@ -353,15 +355,21 @@
     window.MiceliumAnimate = {
         toggle, play, pause,
         ownsViewport: () => active && !isVideoMode,
-        frameCanvas: () => composition.buffer?.canvas || null,
+        frameCanvas: () => composition.rasterize(),
         compositionSettings: settings,
+        inspectionView: () => viewport.snapshot(),
         drawComposition(target) {
             if (!active || !editor.ready()) return false;
-            const config = settings(), buffer = composition.render(editor.capture(), config);
+            const config = settings(), buffer = composition.render(editor.capture(), config, { rasterize: false });
             const fit = Math.max(.01, Math.min((width - 32) / buffer.width, (height - 32) / buffer.height));
             target.clear(); target.background(config.dark ? 17 : 238); target.push();
-            target.image(buffer, (width - buffer.width * fit) / 2, (height - buffer.height * fit) / 2, buffer.width * fit, buffer.height * fit); target.pop();
-            $('animate-frame-size').textContent = `${buffer.width} × ${buffer.height} · ${config.dark ? 'DARK' : 'LIGHT'}`;
+            const scale = fit * viewport.zoom, context = target.drawingContext;
+            context.save();
+            context.translate((width - buffer.width * scale) / 2 + viewport.x, (height - buffer.height * scale) / 2 + viewport.y);
+            context.scale(scale, scale); composition.paint(context); context.restore(); target.pop();
+            $('animate-view-zoom').textContent = `${Math.round(viewport.zoom * 100)}%`;
+            const label = `${buffer.width} × ${buffer.height} · ${config.dark ? 'DARK' : 'LIGHT'}`;
+            if ($('animate-frame-size').textContent !== label) $('animate-frame-size').textContent = label;
             return true;
         },
         beginExport() {

@@ -12,7 +12,9 @@
     document.getElementById('ui').addEventListener('click', event => {
         if (event.target.closest('#btnZoomIn, #btnZoomOut')) clearParameters();
     }, true);
-    document.getElementById('viewport').addEventListener('wheel', clearParameters, { capture: true, passive: true });
+    document.getElementById('viewport').addEventListener('wheel', () => {
+        if (!window.MiceliumAnimate?.ownsViewport()) clearParameters();
+    }, { capture: true, passive: true });
     document.addEventListener('micelium:media-loading', clearParameters);
     window.MiceliumEditor = {
         parameters: () => animatedParameters,

@@ -94,7 +94,7 @@ const useWebKit = process.env.BROWSER === 'webkit';
             return { count: names.length, metadata: JSON.parse(await z.file('animation.json').async('string')), images };
         }, bytes.toString('base64'));
         assert.equal(zip.count, 15); assert.equal(zip.metadata.duration, 1); assert.equal(zip.metadata.fps, 15);
-        assert.equal(zip.metadata.detail, '480'); assert.equal(zip.metadata.width, 160); assert.equal(zip.metadata.height, 96); assert.equal(zip.metadata.dark, true);
+        assert.equal(zip.metadata.detail, 'source'); assert.equal(zip.metadata.width, 160); assert.equal(zip.metadata.height, 96); assert.equal(zip.metadata.dark, true);
         assert.deepEqual(zip.images, expected); assert.equal((await state()).time, before.time); assert.equal(await pixels(), beforePixels);
         console.log('PASS: actual ZIP, 15 PNGs, metadata and byte-identical preview/export samples');
         await page.click('#animation-export-cancel'); await set('#animate-duration', 30); await page.click('#animate-export'); await page.selectOption('#animation-export-fps', '60');
