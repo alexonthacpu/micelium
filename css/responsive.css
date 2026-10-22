@@ -1,5 +1,11 @@
 /* Shared typography, then the compact phone layout. Rendering stays in the sketch. */
 *, *::before, *::after { font-family: var(--font-mono) !important; }
+:root { color-scheme: light; }
+* { accent-color: #000; }
+input[type="range"] { color: #000; }
+:disabled { color: #777; }
+::selection { color: #fff; background: #000; }
+:focus-visible { outline: 2px solid #000; outline-offset: 2px; }
 body { height: 100dvh; }
 #ui { width: 286px; height: 100dvh; max-height: 100dvh; }
 #workspace { min-width: 0; height: 100dvh; max-height: 100dvh; }
@@ -77,7 +83,11 @@ body { height: 100dvh; }
     #exportModal button { min-height: 44px; }
     #exportModal .modal-close { min-width: 44px; }
     #exportModal input[type="number"] { max-width: 100%; font-size: 16px !important; }
-    #about-dialog { max-height: calc(100dvh - 24px); overflow: auto; font-size: 14px; }
+    #about-dialog { width: calc(100vw - 24px); height: 90dvh; max-height: calc(100dvh - 24px); overflow: hidden; font-size: 14px; }
+    #about-dialog header { padding: 14px 16px; }
+    #about-dialog h2 { font-size: 20px; }
+    #about-content { padding: 4px 18px 18px; }
+    .about-styles { grid-template-columns: 1fr; gap: 0; }
     #about-dialog button { min-height: 44px; min-width: 44px; }
 }
 @media (max-height: 500px) and (pointer: coarse) {
