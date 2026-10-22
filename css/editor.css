@@ -109,7 +109,7 @@
 #animation-export-dialog footer { justify-content: flex-end; border-top: 1px dotted #aaa; padding-top: 14px; }
 
 /* Key creation and overwriting are explicit; dense keys also have a readable list. */
-#animate-panel { max-height: 58vh; }
+#animate-panel { max-height: none; height: min(360px, 36vh); padding: 8px 12px; border-top: 0; }
 #animate-panel h2 { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 #animate-help { border-bottom: 1px dotted #aaa; padding: 10px 0; line-height: 1.65; }
 #animate-help summary { cursor: pointer; letter-spacing: .5px; }
@@ -135,4 +135,36 @@
 #animate-panel input[type="number"] { width: 67px; }
 @media (max-width: 1050px) {
     #animate-help ol { grid-template-columns: 1fr; gap: 8px; }
+}
+
+/* A docked, compact timeline with a separate, always reachable resize divider. */
+#animate-resize { position: relative; flex: 0 0 14px; height: 14px; border-top: 1px solid #000; background: #f5f5f5; cursor: ns-resize; touch-action: none; user-select: none; }
+#animate-resize[hidden] { display: none; }
+#animate-resize::before { content: ''; position: absolute; width: 44px; height: 3px; top: 5px; left: calc(50% - 22px); background: #888; }
+#animate-resize span { position: absolute; right: 12px; top: 0; font-size: 10px; line-height: 13px; color: #555; }
+#animate-resize:hover, #animate-resize:focus-visible { background: #e8e8e8; outline: 1px solid #000; outline-offset: -1px; }
+.animation-panel-resizing, .animation-panel-resizing * { cursor: ns-resize !important; user-select: none !important; }
+#animate-panel .animate-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 8px; padding-bottom: 6px; }
+.animate-settings, .animate-header-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; min-width: 0; }
+.animate-header-actions { flex-wrap: nowrap; gap: 6px; }
+.animate-settings label { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+#animate-panel .animate-settings h2 { flex-wrap: nowrap; white-space: nowrap; }
+#animate-panel .animate-header button, #animate-panel .animate-transport button, #animate-panel .animate-key-actions button, #animate-panel .animate-source { padding: 5px 8px; }
+#animate-panel #animate-close { padding: 2px 5px; }
+#animate-help { padding: 6px 0; }
+.animate-body { padding-top: 8px; gap: 12px; }
+#animate-panel .animate-transport { gap: 5px; }
+#animate-panel #animate-track { height: 90px; margin-top: 10px; }
+#animate-markers .animate-key { top: 25px; height: 23px; padding: 3px 5px; }
+#animate-segments .animate-segment { top: 54px; height: 28px; }
+.animate-segment svg { height: 18px; }
+#animate-panel #animate-scrub { margin-bottom: 5px; }
+#animate-key-list { padding: 2px 0; }
+#animate-key-list button { padding: 3px 6px; }
+#animate-key-status { padding: 5px 8px; margin: 5px 0; }
+#animate-panel #animate-add { min-height: 30px; }
+#animate-message { margin-top: 6px; }
+@media (max-width: 1200px) {
+    #animate-panel .animate-header { grid-template-columns: 1fr; }
+    .animate-header-actions { justify-content: flex-end; }
 }

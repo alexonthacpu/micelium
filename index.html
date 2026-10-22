@@ -3439,17 +3439,45 @@ function windowResized() {
     const logoHeader = document.getElementById("logo-header");
     if (!logoHeader) return;
 
+    const refreshCursor = document.createElement('span');
+    refreshCursor.id = 'logo-refresh-cursor'; refreshCursor.textContent = 'refresh page';
+    refreshCursor.hidden = true; refreshCursor.setAttribute('aria-hidden', 'true');
+    document.body.append(refreshCursor);
+    let logoPointer = null;
+    function moveRefreshCursor(event) {
+        logoPointer = event;
+        const logo = document.getElementById('logo'), rect = logo?.getBoundingClientRect();
+        const inside = rect && event.clientX >= rect.left && event.clientX <= rect.right && event.clientY >= rect.top && event.clientY <= rect.bottom;
+        const show = logoHeader.classList.contains('png-mode') && inside && matchMedia('(hover: hover) and (pointer: fine)').matches;
+        refreshCursor.hidden = !show;
+        if (show) {
+            const x = Math.max(4, Math.min(event.clientX + 8, innerWidth - refreshCursor.offsetWidth - 4));
+            const y = Math.max(4, Math.min(event.clientY + 8, innerHeight - refreshCursor.offsetHeight - 4));
+            refreshCursor.style.transform = `translate(${x}px, ${y}px)`;
+        }
+    }
+    logoHeader.addEventListener('pointermove', moveRefreshCursor);
+    logoHeader.addEventListener('pointerenter', moveRefreshCursor);
+    function hideRefreshCursor() { logoPointer = null; refreshCursor.hidden = true; }
+    logoHeader.addEventListener('pointerleave', hideRefreshCursor);
+    window.addEventListener('blur', hideRefreshCursor);
+
     setupVideoLogo();
 
-    function setupPngLogo() {
+    function setupPngLogo(event) {
         logoHeader.classList.remove("video-mode");
         logoHeader.classList.add("png-mode");
-        logoHeader.innerHTML = "<img id=\"logo\" src=\"img/k2.png\" alt=\"MYCELIUM\" title=\"Click to reload\">";
+        logoHeader.innerHTML = "<img id=\"logo\" src=\"img/k2.png\" alt=\"MYCELIUM\" role=\"button\" tabindex=\"0\" aria-label=\"Refresh page\">";
         const imgEl = document.getElementById("logo");
         if (imgEl) {
             imgEl.addEventListener("click", function() {
                 location.reload();
             });
+            imgEl.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); location.reload(); }
+            });
+            imgEl.addEventListener('load', () => { if (logoPointer) moveRefreshCursor(logoPointer); }, { once: true });
+            moveRefreshCursor(event);
         }
     }
 
@@ -3519,7 +3547,7 @@ function windowResized() {
         logoVid.addEventListener("click", function(e) {
             e.preventDefault();
             e.stopPropagation();
-            setupPngLogo();
+            setupPngLogo(e);
         });
     }
 })();
@@ -3656,6 +3684,7 @@ function windowResized() {
 <script defer src="js/animation-renderer.js"></script>
 <script defer src="js/animation-viewport.js"></script>
 <script defer src="js/animation-export.js"></script>
+<script defer src="js/animation-panel.js"></script>
 <script defer src="js/animate.js"></script>
 <script defer src="js/animation-export-ui.js"></script>
 <script defer src="js/navigation.js"></script>

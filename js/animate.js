@@ -7,14 +7,14 @@
     const panel = document.createElement('section');
     panel.id = 'animate-panel'; panel.setAttribute('data-editor-overlay', ''); panel.hidden = true;
     panel.setAttribute('aria-label', 'Animation editor');
-    panel.innerHTML = `<header class="animate-header"><h2>ANIMATION <span class="menu-badge">WORK IN PROGRESS</span></h2>
+    panel.innerHTML = `<header class="animate-header"><div class="animate-settings"><h2>ANIMATION <span class="menu-badge" title="Work in progress" aria-label="Work in progress">WIP</span></h2>
         <label class="animate-source"><span>LOAD IMAGE</span><input id="animate-source" type="file" accept="image/png,image/jpeg,image/webp,image/bmp,image/svg+xml" aria-label="Load animation image"></label>
         <label>DURATION <input id="animate-duration" type="number" min="1" max="30" step="0.1" value="15" aria-label="Animation duration in seconds"> S</label>
         <label class="animate-loop-label" title="Stretch keyframes proportionally when changing duration"><input id="animate-retime" type="checkbox" checked> RETIME KEYS</label>
         <label>FRAME <select id="animate-resolution" aria-label="Composition resolution"><option value="720">720 PX</option><option value="1080">1080 PX</option><option value="1920">1920 PX</option><option value="source">SOURCE (MAX 1920)</option></select></label>
         <label>DETAIL <select id="animate-detail" aria-label="Animation detail" title="Fixed detail shared by preview and export"><option value="480">BALANCED</option><option value="720">FINE</option><option value="source" selected>SOURCE</option></select></label>
-        <button id="animate-fit" title="Drag to pan; pinch or Ctrl/Cmd + scroll to zoom. Fit resets the view without changing keyframes or export.">FIT VIEW</button><span id="animate-view-zoom" class="editor-note">100%</span><span id="animate-frame-size" class="editor-note"></span><button id="animate-export">EXPORT ANIMATION</button>
-        <button id="animate-close" aria-label="Close Animate">×</button></header>
+        </div><div class="animate-header-actions"><button id="animate-fit" title="Drag to pan; pinch or Ctrl/Cmd + scroll to zoom. Fit resets the view without changing keyframes or export.">FIT VIEW</button><span id="animate-view-zoom" class="editor-note">100%</span><button id="animate-export">EXPORT ANIMATION</button>
+        <button id="animate-close" aria-label="Close Animate">×</button></div></header>
         <details id="animate-help"><summary>HOW TO ANIMATE · ADD &amp; OVERWRITE KEYFRAMES</summary>
             <ol><li><strong>Start.</strong> Load a still image. Keyframe 01 is saved at 0 s. Adjust the sidebar parameters, then click <strong>Overwrite keyframe 01</strong> to save your starting look.</li>
             <li><strong>Add.</strong> Click an empty time on the timeline or use SEEK. Adjust the parameters, then click <strong>Add keyframe</strong>. Use <strong>End key</strong> for the final look. Add at least two keys to animate.</li>
@@ -24,7 +24,7 @@
         <div class="animate-body"><div class="animate-sequence">
         <div class="animate-transport"><button id="animate-play">PLAY</button><button id="animate-pause" disabled>PAUSE</button><button id="animate-restart" title="Play from the beginning">RESTART</button><button id="animate-stop" title="Pause and return to zero">STOP</button><button id="animate-prev" aria-label="Previous keyframe">‹ KEY</button><button id="animate-next" aria-label="Next keyframe">KEY ›</button>
             <output id="animate-time" aria-label="Current animation time">00:00.00 / 00:15.00</output>
-            <label class="animate-loop-label"><input id="animate-loop" type="checkbox"> LOOP</label><span id="animate-performance" class="editor-note"></span></div>
+            <label class="animate-loop-label"><input id="animate-loop" type="checkbox"> LOOP</label><span id="animate-frame-size" class="editor-note"></span><span id="animate-performance" class="editor-note"></span></div>
         <div id="animate-track" aria-label="Keyframe timeline"><div class="animate-ruler" aria-hidden="true"><span>0</span><span>5</span><span>10</span><span id="animate-end-label">15 S</span></div>
             <div id="animate-segments"></div><div id="animate-markers"></div><div id="animate-playhead" aria-hidden="true"></div></div>
         <input id="animate-scrub" type="range" min="0" max="15" value="0" step="0.001" aria-label="Scrub animation time">
@@ -41,6 +41,7 @@
         <p class="editor-note">Click a transition strip to edit its curve without moving the playhead. Drag handles for live feedback. Styles switch at keys.</p>
         </div></div>`;
     document.getElementById('workspace').append(panel);
+    const panelLayout = new window.MiceliumAnimationPanel(panel);
     const $ = id => panel.querySelector(`#${id}`);
     const scrub = $('animate-scrub'), track = $('animate-track');
     let active = false, playing = false, frames = [], selected = null;
@@ -221,7 +222,7 @@
         }
         pause();
         if (next && !active && editor.hasImage() && !frames.length) initializeImage();
-        active = next; panel.hidden = !active;
+        active = next; panel.hidden = !active; panelLayout.show(active);
         document.getElementById('viewport').classList.toggle('animate-view', active);
         editor.resize(); editor.render();
         document.getElementById('menu-animate')?.setAttribute('aria-pressed', String(active));
