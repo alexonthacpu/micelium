@@ -49,23 +49,43 @@ const { chromium } = require('playwright');
                 const renderer = new MiceliumComposition(editor); const data = renderer.render(state, config).canvas.toDataURL();
                 const result = { data, pixels: pixels(renderer).slice() }; renderer.dispose(); return result;
             });
+            // A dither cell must contain a complete endpoint pixel, never an
+            // opacity-weighted gray. Each differing pixel may switch only once.
+            function assertDither(output, a, b, previous, label, progress) {
+                const switched = new Uint8Array(output.length / 4);
+                let different = 0, replaced = 0;
+                for (let i = 0; i < output.length; i += 4) {
+                    const equal = source => [0, 1, 2, 3].every(c => output[i + c] === source[i + c]);
+                    if (!equal(a) && !equal(b)) throw new Error(`${label}: opacity blend at pixel ${i / 4}`);
+                    const differs = [0, 1, 2, 3].some(c => a[i + c] !== b[i + c]);
+                    switched[i / 4] = differs && equal(b) ? 1 : 0;
+                    different += differs ? 1 : 0; replaced += switched[i / 4];
+                    if (previous?.[i / 4] && !switched[i / 4]) throw new Error(`${label}: dither flickered backwards`);
+                }
+                if (!different || Math.abs(replaced / different - progress) > Math.max(.08, 1 / Math.sqrt(different))) {
+                    throw new Error(`${label}: dither coverage did not follow progress (${replaced}/${different})`);
+                }
+                return switched;
+            }
             let pairs = 0;
             for (let a = 0; a < 6; a++) for (let b = 0; b < 6; b++) if (a !== b) {
                 const keys = [{ id: 'a', time: 0, values: states[a], easing: 'linear' }, { id: 'b', time: 1, values: states[b], easing: 'linear' }];
                 const renderer = new MiceliumComposition(editor);
                 renderer.renderScene(MiceliumTimeline.sampleScene(keys, 0), config);
                 if (renderer.rasterize().toDataURL() !== references[a].data) throw new Error(`pair ${a + 1}/${b + 1}: starting pixels`);
-                renderer.renderScene(MiceliumTimeline.sampleScene(keys, .25), config); const generated = calls, replayed = replays;
-                for (const time of [.5, .75, .999]) {
+                renderer.renderScene(MiceliumTimeline.sampleScene(keys, .125), config); const generated = calls, replayed = replays;
+                let previous;
+                for (const time of [.125, .25, .5, .75, .999]) {
                     renderer.renderScene(MiceliumTimeline.sampleScene(keys, time), config);
-                    const output = pixels(renderer);
-                    for (let i = 0; i < output.length; i++) {
-                        const expected = references[a].pixels[i] * (1 - time) + references[b].pixels[i] * time;
-                        if (Math.abs(output[i] - expected) > 2) throw new Error(`pair ${a + 1}/${b + 1}: incorrect whole-frame dissolve at ${time}`);
-                    }
+                    previous = assertDither(pixels(renderer), references[a].pixels, references[b].pixels, previous, `pair ${a + 1}/${b + 1} at ${time}`, time);
                 }
-                if (calls !== generated) throw new Error('blend-only frames recalculated style geometry');
-                if (replays !== replayed) throw new Error('blend-only frames replayed unchanged vector paths');
+                renderer.renderScene(MiceliumTimeline.sampleScene(keys, .37), config);
+                const revisited = renderer.rasterize().toDataURL();
+                renderer.renderScene(MiceliumTimeline.sampleScene(keys, .8), config);
+                renderer.renderScene(MiceliumTimeline.sampleScene(keys, .37), config);
+                if (renderer.rasterize().toDataURL() !== revisited) throw new Error('dither is not deterministic after seeking');
+                if (calls !== generated) throw new Error('dither-only frames recalculated style geometry');
+                if (replays !== replayed) throw new Error('dither-only frames replayed unchanged vector paths');
                 renderer.renderScene(MiceliumTimeline.sampleScene(keys, 1), config);
                 if (renderer.rasterize().toDataURL() !== references[b].data) throw new Error(`pair ${a + 1}/${b + 1}: ending pixels`);
                 renderer.dispose(); pairs++;
@@ -79,31 +99,37 @@ const { chromium } = require('playwright');
                 const g = c.getContext('2d'); g.scale(2, 2); retained.paint(g);
                 const left = g.getImageData(0, 0, 320, 192).data, right = fresh.rasterize().getContext('2d').getImageData(0, 0, 320, 192).data;
                 let error = 0; for (let i = 0; i < left.length; i++) error += Math.abs(left[i] - right[i]);
-                if (error / left.length > .05) throw new Error('2x dissolve lost vector detail');
+                if (error / left.length > .05) throw new Error('2x dither lost vector detail or grain registration');
+                const panned = document.createElement('canvas'); panned.width = 400; panned.height = 240;
+                const p = panned.getContext('2d'); p.translate(17, 13); p.scale(2, 2); retained.paint(p);
+                const translated = p.getImageData(17, 13, 320, 192).data;
+                let panError = 0, panMax = 0;
+                for (let i = 0; i < translated.length; i++) { const d = Math.abs(translated[i] - left[i]); panError += d; panMax = Math.max(panMax, d); }
+                // Canvas may round a few antialiased vector-edge samples by 1/255
+                // after an integer translation; a grain shift is much larger.
+                if (panMax > 2 || panError / translated.length > .01) throw new Error('inspection pan moved dither relative to composition');
                 retained.dispose(); fresh.dispose();
             }
             const zoomKeys = [{ time: 0, values: { ...states[0], zoomSlider: .7 }, easing: 'ease-in-out' },
                 { time: 1, values: { ...states[3], zoomSlider: 1.3 } }];
             const moving = new MiceliumComposition(editor);
-            const zoomErrors = [];
-            for (const time of [.15, .55, .9]) {
+            let zoomChecks = 0;
+            for (const dark of [false, true]) for (const time of [.15, .55, .9]) {
                 const scene = MiceliumTimeline.sampleScene(zoomKeys, time);
-                moving.renderScene(scene, config);
+                const settings = { ...config, dark };
+                moving.renderScene(scene, settings);
                 const left = new MiceliumComposition(editor), right = new MiceliumComposition(editor);
-                left.render(scene.from, config); right.render(scene.to, config);
+                left.render(scene.from, settings); right.render(scene.to, settings);
                 const output = pixels(moving), a = pixels(left), b = pixels(right);
-                let max = 0, sum = 0;
-                for (let i = 0; i < output.length; i++) { const error = Math.abs(output[i] - (a[i] * (1 - scene.mix) + b[i] * scene.mix)); max = Math.max(max, error); sum += error; }
-                zoomErrors.push({ time, max, mean: sum / output.length });
-                left.dispose(); right.dispose();
+                assertDither(output, a, b, null, `keyed zoom at ${time}, dark=${dark}`, scene.mix);
+                left.dispose(); right.dispose(); zoomChecks++;
             }
             moving.dispose();
-            return { pairs, zoomErrors };
+            return { pairs, zoomChecks };
         });
         assert.equal(checks.pairs, 30);
-        // Fractional easing weights are quantized by Canvas's 8-bit alpha compositor.
-        for (const error of checks.zoomErrors) assert.ok(error.max < 4 && error.mean < .2, `zoom dissolve pixels: ${JSON.stringify(error)}`);
-        console.log('PASS: all 30 ordered style pairs, exact endpoints, smooth weighted frames, cached geometry and native 2x detail');
+        assert.equal(checks.zoomChecks, 6);
+        console.log('PASS: all 30 ordered style pairs, exact endpoints, binary monotonic deterministic dithering, cached geometry, dark/keyed zoom and native 2x detail');
         const set = (id, value) => page.locator(id).evaluate((el, value) => { el.value = value; el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); }, String(value));
         const seek = value => set('#animate-seek-time', value);
         await page.click('#menu-toggle'); await page.click('#menu-animate');
@@ -118,7 +144,7 @@ const { chromium } = require('playwright');
         await choose(5); assert.equal(await page.locator('#animate-add').isEnabled(), true); await page.click('#animate-add');
         assert.deepEqual(await page.evaluate(() => MiceliumAnimate.snapshot().frames.map(key => key.values.styleSelect)), ['1', '6', '4']);
         assert.equal(await page.locator('.animate-key .key-style').count(), 3);
-        assert.match(await page.locator('.animate-segment').first().textContent(), /DISSOLVE/);
+        assert.match(await page.locator('.animate-segment').first().textContent(), /DITHER/);
         await page.locator('.animate-segment').first().click(); await page.selectOption('#animate-ease', 'ease-in-out');
         await page.click('#menu-toggle'); await page.click('#menu-dark');
         const expected = {};
@@ -137,7 +163,7 @@ const { chromium } = require('playwright');
             return { images: result, metadata: JSON.parse(await archive.file('animation.json').async('string')) };
         }, { zip: bytes.toString('base64'), indices: Object.keys(expected).map(Number) });
         assert.deepEqual(exported.images, expected); assert.equal(exported.metadata.frameCount, 15);
-        assert.equal(exported.metadata.styleTransitions, 'cross-dissolve'); assert.equal(exported.metadata.dark, true);
+        assert.equal(exported.metadata.styleTransitions, 'spatial-dither'); assert.equal(exported.metadata.dark, true);
         assert.deepEqual(exported.metadata.keyframes.map(key => key.values.styleSelect), ['1', '6', '4']);
         assert.equal(await page.evaluate(() => MiceliumAnimate.frameCanvas().toDataURL()), paused.pixels);
         assert.equal(await page.evaluate(() => MiceliumAnimate.snapshot().time), paused.time);
@@ -169,7 +195,7 @@ const { chromium } = require('playwright');
             }), data.toString('base64'));
             assert.equal(decoded.width, 160); assert.equal(decoded.height, 96); assert.ok(decoded.contrast > 30);
             assert.equal(await page.evaluate(() => MiceliumAnimate.frameCanvas().toDataURL()), paused.pixels);
-            console.log(`PASS: mixed-style ${type.ext} export decodes with artwork during the dissolve`);
+            console.log(`PASS: mixed-style ${type.ext} export decodes with artwork during dithering`);
         }
         assert.deepEqual(errors, []); assert.deepEqual(external, []);
         console.log('PASS: three-style UI timeline, paused-frame stability, mixed PNG ZIP parity/metadata and editor restoration');

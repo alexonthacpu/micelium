@@ -12,7 +12,7 @@
             handle.setAttribute('role', 'separator'); handle.setAttribute('aria-orientation', 'horizontal');
             handle.setAttribute('aria-controls', panel.id);
             handle.setAttribute('aria-label', 'Resize animation panel');
-            handle.title = 'Drag up or down to resize. Arrow keys adjust height; double-click or Enter resets.';
+            handle.title = 'Drag up or down to resize. Arrow keys adjust height; double-click or Enter shows all controls.';
             handle.innerHTML = '<span aria-hidden="true">DRAG TO RESIZE</span>';
             panel.before(handle);
             handle.addEventListener('pointerdown', event => {
@@ -47,13 +47,13 @@
         bounds() {
             const player = document.getElementById('videoBottomBar');
             const style = getComputedStyle(this.panel);
-            const contentHeight = this.content.getBoundingClientRect().height + parseFloat(style.paddingTop) + parseFloat(style.paddingBottom) + 2;
-            const max = Math.max(80, Math.floor(Math.min(contentHeight, this.workspace.clientHeight - 160 - this.handle.offsetHeight - player.offsetHeight)));
+            const contentHeight = this.content.getBoundingClientRect().height + parseFloat(style.paddingTop) + parseFloat(style.paddingBottom) + parseFloat(style.borderTopWidth) + parseFloat(style.borderBottomWidth);
+            const max = Math.max(80, Math.min(Math.ceil(contentHeight), Math.floor(this.workspace.clientHeight - 160 - this.handle.offsetHeight - player.offsetHeight)));
             return { min: Math.min(180, max), max };
         }
         sync() {
             const { min, max } = this.bounds();
-            const height = Math.round(Math.max(min, Math.min(max, this.preferred ?? Math.min(360, this.workspace.clientHeight * .36))));
+            const height = Math.round(Math.max(min, Math.min(max, this.preferred ?? max)));
             this.panel.style.height = `${height}px`;
             this.handle.setAttribute('aria-valuemin', String(min));
             this.handle.setAttribute('aria-valuemax', String(max));
@@ -74,7 +74,7 @@
         }
         show(active) {
             this.handle.hidden = !active;
-            if (active) this.sync(); else this.finishDrag();
+            if (active) this.reset(); else this.finishDrag();
         }
     };
 })();

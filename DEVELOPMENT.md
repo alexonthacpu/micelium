@@ -61,8 +61,10 @@ and click **Overwrite keyframe 01** to save the key; seek to another time and
 click **Add keyframe** to add the next one. At a saved key's time, the primary
 button explicitly becomes **Overwrite keyframe**; sidebar edits remain a draft
 until that button is clicked. The status strip highlights unsaved changes.
-Numbered timeline markers and a scrollable list identify each saved key and its
-time; selected keys have a solid fill. **How to animate** explains creation,
+Floating diamonds in the middle timeline lane and a scrollable list identify
+each saved key and its time; selected diamonds have a solid fill. A separate
+triangle above the lane scrubs time without moving saved keys. Both controls
+accept Left/Right and Shift for larger steps; the playhead also supports Home/End. **How to animate** explains creation,
 overwriting, navigation and transitions. **End Key** saves
 the current parameters at the duration endpoint. Duration accepts 1–30 seconds.
 **Retime Keys** stretches all key times and the playhead proportionally by
@@ -76,14 +78,15 @@ playhead. Strips show their own curves; the editor identifies the interval.
 Linear, Ease In/Out, Ease In-Out and custom Bezier are available. Drag handles
 or edit coordinates; changes update the current frame live, coalesced by RAF.
 Numeric parameters and zoom interpolate within a style; switches change at keys.
-Keys with different styles use a whole-scene cross-dissolve controlled by the
-outgoing easing curve. Each endpoint keeps its own style parameters, so values
+Keys with different styles use progressive spatial dithering controlled by the
+outgoing easing curve: outgoing marks break apart as incoming marks appear,
+without an opacity fade. Each endpoint keeps its own style parameters, so values
 with different meanings are never blended together. Key markers and the key
 list identify both key number and style; transition strips distinguish
-parameter animation from a style dissolve. Sidebar edits preview a draft look;
+parameter animation from a style dither. Sidebar edits preview a draft look;
 save it as a key before seeking or exporting. A mixed preview cannot be saved
 as if it were a single style: change a sidebar control to define the new look
-before adding a key inside a dissolve.
+before adding a key inside a style transition.
 Before the first key and after the last, values hold.
 
 **Pause** freezes the displayed frame without changing quality. **Resume**
@@ -94,7 +97,8 @@ The existing video/GIF player remains separate; Animate uses still images.
 
 ### Animation dock size
 
-Animation starts in a compact bottom dock (36% of the workspace, up to 360 px).
+Animation opens at the full height of its controls, capped to leave at least
+160 px for the viewport. It opens fully again after being closed.
 Drag the divider above it up or down to choose how much space goes to the
 viewport or the timeline. The dock scrolls internally at small sizes, keeping
 all controls and instructions available. Its settings and action buttons are
@@ -102,9 +106,8 @@ grouped separately, with a shorter timeline track and tighter spacing.
 
 The divider is keyboard focusable: Up/Down changes height by 16 px (48 px with
 Shift), Home minimizes it, End expands it up to the actual content height while retaining a 160 px viewport,
-and Enter or a double-click restores the compact default. The chosen height
-survives closing/reopening Animation during this page session, and adapts to
-window resizing. Opening/closing the instructions or changing the content also
+and Enter or a double-click shows all controls again. A manually chosen height
+applies during the current opening and adapts to window resizing. Opening/closing the instructions or changing the content also
 updates the maximum height: the dock cannot grow into unused blank space.
 Dock resizing only changes display fitting; keyframes,
 playhead time, composition settings and exported pixels are unchanged.
@@ -138,21 +141,29 @@ parameters change. Input bursts are coalesced with RAF instead of a 75 ms slider
 throttle; parameter edits no longer invalidate unchanged source pixels. Paths
 retain their original draw order, fill and stroke settings (no merging or
 simplification). Only the current scene, or the current pair during a style
-dissolve, is kept per viewport; animation geometry
+transition, is kept per viewport; animation geometry
 is reused for zoom-only keyframes. Playback draws the scene directly to the
 viewport; the export-size bitmap is rasterized only when requested. Capturing
 geometry does not also draw an unused intermediate frame. Original style equations and PNG/SVG formats
 are retained. Still exports seed randomness explicitly so cached viewport draws
 cannot change export output.
 
-For a style dissolve, both endpoints are retained as vectors and isolated in
-reusable canvases at the current target's actual pixel density, then composited
-with the easing weight. Applying opacity per path would
-incorrectly darken overlapping marks. The same composition renderer handles
-preview and export, including dark palette and continuous keyed zoom. Blend-only
-frames reuse both native-density layers without geometry generation or path
-replay. A camera/zoom, source or style change rebuilds the affected layers;
-processing detail is never reduced.
+For a style transition, both endpoints are retained as vectors and isolated in
+reusable canvases at the current target's actual pixel density. A deterministic
+64×64 ranked noise tile provides 4096 progressive thresholds. Each local cell
+selects one complete endpoint pixel, including its background, rather than
+mixing opacity. The grain scale derives from the normalized source dimensions
+and stays anchored to composition coordinates: inspection pan/zoom and export
+size cannot change its registration. Nearest-neighbor sampling keeps the mask
+binary; antialiased style edges keep their original detail. Exact key times
+bypass the mask and reproduce the original endpoint.
+
+The same renderer handles preview and export, including dark palette and
+continuous keyed zoom. Dither-only frames reuse both native-density layers
+without geometry generation or path replay. Repeated seeks use the same noise,
+so pausing, scrubbing and exporting do not introduce random flicker. A
+camera/zoom, source or style change rebuilds the affected layers; processing
+detail is never reduced.
 
 ### Animation export
 
@@ -190,6 +201,7 @@ node tests/animation-workflow.cjs
 node tests/viewport-navigation.cjs
 node tests/responsive.cjs
 node tests/style-transitions.cjs
+node tests/image-fit.cjs
 ```
 
 Set `BROWSER=webkit` to run the existing browser suites in Playwright WebKit;
@@ -204,6 +216,24 @@ parameters, palette, playback and composition pixels. Existing suites check orig
 image/video upload and menu behavior with external requests blocked.
 `node tests/playback-performance.cjs` reports observational FPS on a generated
 1024×1024 source; it does not assert a universal frame rate.
+
+## Upload framing
+
+New images are centered and fitted to 80% of the available viewport in their
+limiting dimension. Small sources display larger and large sources display
+smaller; the camera does not upsample the processing source or change ordinary
+PNG/SVG export dimensions or pixels. Double-click restores that fit in the
+classic viewport. The slider range adapts to tiny and large native sources,
+with continuous precision for zoom values beyond the old 0.05–8 range. The same
+initial framing applies to the existing GIF/video upload flows. Animation saves
+the fitted camera as its baseline; resizing its dock changes only inspection
+fitting.
+
+`tests/image-fit.cjs` checks actual rendered occupancy, small/tiny/large/native
+panoramic/portrait sources, preserved source dimensions and byte-identical native
+PNG after zoom, double-click refitting and Animation's baseline camera. It also
+checks mobile naming and explicit black zoom-button styling. The active page
+title is **MYCLM beta**, and the mobile controls header is **MYCLM**.
 
 ## Phone layout and typography
 
@@ -243,10 +273,11 @@ randomness, halftone perception and animation/export details. It uses the same
 local Garamono typography on desktop and phone.
 
 `tests/style-transitions.cjs` checks all 30 ordered pairs of distinct styles,
-exact endpoints, weighted whole-frame intermediate pixels, geometry reuse,
-native 2× vector replay and an actual three-style PNG ZIP. It verifies preview
+exact endpoints, binary endpoint-pixel selection, monotone deterministic
+progress, geometry reuse, native 2× vector replay and grain registration through pan/zoom and an actual three-style PNG ZIP. It verifies preview
 parity, dark palette, easing, saved style metadata and editor restoration.
-Animation JSON includes `styleTransitions: "cross-dissolve"`.
+Animation JSON includes `styleTransitions: "spatial-dither"`. WebM and MP4
+recordings are decoded at an intermediate transition time to check visible output.
 
 After the logo's first click switches it from video to the static character,
 hovering the character replaces the pointer with a Garamono “refresh page” label.

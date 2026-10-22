@@ -1,6 +1,16 @@
 /* A fixed composition shared by playback, scrubbing and exported frames. */
 (function () {
     'use strict';
+    // A fixed ranked noise tile: each cell changes once as progress increases.
+    // Thousands of thresholds keep slow transitions gradual without temporal noise.
+    const tileSize = 64, cellCount = tileSize * tileSize;
+    const thresholds = Uint16Array.from({ length: cellCount }, (_, i) => i);
+    let seed = 0x4d59434c;
+    for (let i = cellCount - 1; i > 0; i--) {
+        seed ^= seed << 13; seed ^= seed >>> 17; seed ^= seed << 5;
+        const j = (seed >>> 0) % (i + 1);
+        [thresholds[i], thresholds[j]] = [thresholds[j], thresholds[i]];
+    }
     window.MiceliumComposition = class {
         constructor(editor, { retainDrawing = true } = {}) {
             this.editor = editor; this.retainDrawing = retainDrawing;
@@ -54,6 +64,7 @@
             } else {
                 if (this.mix) this.needsRaster = true;
                 this.mix = 0; this.secondary?.dispose(); this.secondary = null; this.blendLayers = null; this.blendSignature = null;
+                this.ditherLayer = null; this.ditherTile = null; this.ditherPixels = null; this.ditherStep = null;
             }
             if (rasterize) this.rasterize();
             return output;
@@ -66,9 +77,9 @@
         }
         paint(context) {
             if (!this.secondary || !this.mix) { this.paintSingle(context); return; }
-            // Isolate the complete second scene before blending: per-path alpha would
-            // darken overlaps. Cache both complete scenes at actual target density;
-            // blend-only frames then require two blits, with no vector replay.
+            // Keep complete endpoints at native target density. The dither replaces
+            // whole local cells, including their backgrounds; it never fades ink or
+            // replays unchanged vector geometry just because time advances.
             const matrix = context.getTransform(), width = context.canvas.width, height = context.canvas.height;
             const signature = [this.geometry, this.secondary.geometry, this.zoom, this.secondary.zoom,
                 this.dark, this.secondary.dark, width, height, ...['a', 'b', 'c', 'd', 'e', 'f'].map(k => matrix[k])];
@@ -85,8 +96,35 @@
             }
             context.save();
             try {
+                this.ditherLayer ??= document.createElement('canvas');
+                if (this.ditherLayer.width !== width || this.ditherLayer.height !== height) {
+                    this.ditherLayer.width = width; this.ditherLayer.height = height;
+                }
+                if (!this.ditherTile) {
+                    this.ditherTile = document.createElement('canvas');
+                    this.ditherTile.width = this.ditherTile.height = tileSize;
+                    this.ditherPixels = this.ditherTile.getContext('2d').createImageData(tileSize, tileSize);
+                    this.ditherPixels.data.fill(255);
+                }
+                const step = Math.round(Math.max(0, Math.min(1, this.mix)) * cellCount);
+                if (step !== this.ditherStep) {
+                    const pixels = this.ditherPixels.data;
+                    for (let i = 0; i < cellCount; i++) pixels[i * 4 + 3] = thresholds[i] < step ? 255 : 0;
+                    this.ditherTile.getContext('2d').putImageData(this.ditherPixels, 0, 0);
+                    this.ditherStep = step;
+                }
+                const buffer = this.ditherLayer.getContext('2d');
+                buffer.globalCompositeOperation = 'copy'; buffer.drawImage(this.blendLayers[1], 0, 0);
+                buffer.globalCompositeOperation = 'destination-in'; buffer.imageSmoothingEnabled = false;
+                const pattern = buffer.createPattern(this.ditherTile, 'repeat');
+                // Anchor source-sized grain to composition coordinates, independent
+                // of export size or inspection pan/zoom. Preserve native vector detail.
+                const unit = Math.max(this.buffer.width, this.buffer.height) / Math.max(this.source.width, this.source.height);
+                pattern.setTransform(matrix.scale(unit));
+                buffer.fillStyle = pattern; buffer.fillRect(0, 0, width, height);
+                buffer.globalCompositeOperation = 'source-over';
                 context.resetTransform(); context.drawImage(this.blendLayers[0], 0, 0);
-                context.globalAlpha *= this.mix; context.drawImage(this.blendLayers[1], 0, 0);
+                context.drawImage(this.ditherLayer, 0, 0);
             }
             finally { context.restore(); }
         }
@@ -101,6 +139,6 @@
                 if (this.dark) { context.globalCompositeOperation = 'difference'; context.fillStyle = '#fff'; context.fillRect(0, 0, w, h); }
             } finally { context.restore(); }
         }
-        dispose() { this.secondary?.dispose(); this.secondary = null; this.blendLayers = null; this.blendSignature = null; this.mix = 0; this.needsRaster = false; this.geometry = null; this.geometryKey = null; this.buffer?.remove(); this.processing?.remove(); this.buffer = null; this.processing = null; this.source = null; this.detail = null; this.signature = ''; }
+        dispose() { this.secondary?.dispose(); this.secondary = null; this.blendLayers = null; this.blendSignature = null; this.ditherLayer = null; this.ditherTile = null; this.ditherPixels = null; this.ditherStep = null; this.mix = 0; this.needsRaster = false; this.geometry = null; this.geometryKey = null; this.buffer?.remove(); this.processing?.remove(); this.buffer = null; this.processing = null; this.source = null; this.detail = null; this.signature = ''; }
     };
 })();

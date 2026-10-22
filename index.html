@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <title>MYCLM VERSION 16.0</title>
+    <title>MYCLM beta</title>
     <link href="css/editor.css" rel="stylesheet">
     <script src="vendor/p5-1.4.2.min.js"></script>
     <script src="vendor/p5.svg-1.3.1.js"></script>
@@ -611,7 +611,7 @@
 
 <div id="ui">
     <div class="mobile-controls-header">
-        <div>MICELIUM <span>EDIT YOUR IMAGE · SCROLL FOR CONTROLS</span></div>
+        <div>MYCLM <span>EDIT YOUR IMAGE · SCROLL FOR CONTROLS</span></div>
         <button type="button" onclick="document.getElementById('fileInput').click()">LOAD FILE</button>
     </div>
     <!-- Logo video - frozen, animates on slider interaction -->
@@ -629,7 +629,7 @@
             <span class="label zoom-title">CANVAS ZOOM</span>
             <div class="zoom-row">
                 <button type="button" id="btnZoomOut" class="zoom-btn" title="Zoom Out" aria-label="Zoom out">−</button>
-                <input type="range" id="zoomSlider" class="zoom-slider" min="0.05" max="8.0" step="0.05" value="1.08" style="flex-grow:1;">
+                <input type="range" id="zoomSlider" class="zoom-slider" min="0.05" max="8.0" step="any" value="1.08" style="flex-grow:1;">
                 <button type="button" id="btnZoomIn" class="zoom-btn" title="Zoom In" aria-label="Zoom in">+</button>
             </div>
         </div>
@@ -807,7 +807,7 @@
             <div style="font-size: 11px; opacity: 0.6; letter-spacing: 0.5px;">IMG / GIF / VIDEO (MAX 10MB)</div>
         </div>
         <div id="canvas-holder"></div>
-        <div id="status-bar">Version 16.0 | OpenCV: Online | Scroll to Zoom</div>
+        <div id="status-bar">MYCLM beta | OpenCV: Online | Scroll to Zoom</div>
     </div>
 
     <!-- BOTTOM PLAYER BAR (SECONDA NAVBAR INDIPENDENTE: Visibile solo per video e GIF) -->
@@ -1105,7 +1105,7 @@ function cvReady() {
     }
     cvLoaded = true; 
     let sb = document.getElementById('status-bar');
-    if (sb) sb.innerText = "Version 16.0 | OpenCV: Online | Scroll to Zoom"; 
+    if (sb) sb.innerText = "MYCLM beta | OpenCV: Online | Scroll to Zoom";
     triggerSmartRedraw();
 }
 
@@ -1116,7 +1116,7 @@ function normalizeCurrentMedia() {
     const normMode = normSelect ? normSelect.value : '1440';
 
     if (!isVideoMode && !isGifMode) {
-        // IMMAGINI STATICHE: Upscaling bicubico se piccole, Downscaling se enormi
+        // Keep small sources intact; enlarge their display through the viewport camera.
         let sw = rawSourceMedia.width || (rawSourceMedia.elt ? rawSourceMedia.elt.naturalWidth : 640);
         let sh = rawSourceMedia.height || (rawSourceMedia.elt ? rawSourceMedia.elt.naturalHeight : 480);
         let tw = sw, th = sh;
@@ -1186,16 +1186,30 @@ function normalizeCurrentMedia() {
     markSourceMediaDirty();
 }
 
+// Fit the display camera, never the source pixels or the exported geometry.
+// Dynamic bounds also accommodate tiny icons and very large native images.
+function fitMediaToViewport() {
+    if (!img || !img.width || !img.height) return;
+    const fittedZoom = Math.min(width * 0.8 / img.width, height * 0.8 / img.height);
+    if (!Number.isFinite(fittedZoom) || fittedZoom <= 0) return;
+    const zoomSlider = document.getElementById('zoomSlider');
+    zoomSlider.min = String(Math.min(0.05, fittedZoom / 16));
+    zoomSlider.max = String(Math.max(8, fittedZoom * 4));
+    zoomSlider.value = String(fittedZoom);
+    viewX = width / 2;
+    viewY = height / 2;
+}
+
 function zoomByStep(factor) {
     if (!img && !originalImg && !isVideoMode) return;
     const zoomSlider = document.getElementById('zoomSlider');
     let currentZoom = parseFloat(zoomSlider.value) || 1.0;
-    let newZoom = constrain(currentZoom * factor, 0.05, 8.0);
+    let newZoom = constrain(currentZoom * factor, Number(zoomSlider.min), Number(zoomSlider.max));
     let cx = width / 2;
     let cy = height / 2;
     viewX = cx - (cx - viewX) * (newZoom / currentZoom);
     viewY = cy - (cy - viewY) * (newZoom / currentZoom);
-    zoomSlider.value = newZoom.toFixed(2);
+    zoomSlider.value = String(newZoom);
     triggerSmartRedraw();
 }
 
@@ -1224,13 +1238,13 @@ function initViewportNavigation() {
         // Pinch to zoom su trackpad (ctrlKey=true) o Zoom con Cmd/Ctrl/Alt
         if (e.ctrlKey || e.metaKey || e.altKey) {
             let zoomFactor = Math.exp(-e.deltaY * 0.007);
-            let newZoom = constrain(currentZoom * zoomFactor, 0.05, 8.0);
+            let newZoom = constrain(currentZoom * zoomFactor, Number(zoomSlider.min), Number(zoomSlider.max));
 
             // Zoom ancorato sotto il punto esatto del cursore
             viewX = curMouseX - (curMouseX - viewX) * (newZoom / currentZoom);
             viewY = curMouseY - (curMouseY - viewY) * (newZoom / currentZoom);
 
-            zoomSlider.value = newZoom.toFixed(2);
+            zoomSlider.value = String(newZoom);
             triggerSmartRedraw();
         } else {
             // Pan a due dita naturale su trackpad (X e Y fluidi)
@@ -1260,12 +1274,12 @@ function initViewportNavigation() {
 
         const zoomSlider = document.getElementById('zoomSlider');
         let currentZoom = parseFloat(zoomSlider.value) || 1.0;
-        let newZoom = constrain(gestureBaseZoom * e.scale, 0.05, 8.0);
+        let newZoom = constrain(gestureBaseZoom * e.scale, Number(zoomSlider.min), Number(zoomSlider.max));
 
         viewX = curMouseX - (curMouseX - viewX) * (newZoom / currentZoom);
         viewY = curMouseY - (curMouseY - viewY) * (newZoom / currentZoom);
 
-        zoomSlider.value = newZoom.toFixed(2);
+        zoomSlider.value = String(newZoom);
         triggerSmartRedraw();
     });
 
@@ -1277,12 +1291,7 @@ function initViewportNavigation() {
     // Doppio clic sul viewport per ricentrare e riadattare la vista
     vport.addEventListener('dblclick', () => {
         if (!img && !originalImg && !isVideoMode) return;
-        viewX = width / 2;
-        viewY = height / 2;
-        let targetW = img ? img.width : 640;
-        let targetH = img ? img.height : 480;
-        let initialZoom = Math.min((width * 0.8) / targetW, (height * 0.8) / targetH, 1.0);
-        document.getElementById('zoomSlider').value = Math.max(0.05, initialZoom).toFixed(2);
+        fitMediaToViewport();
         triggerSmartRedraw();
     });
 
@@ -1845,12 +1854,7 @@ function loadImageFile(file) {
             rawSourceMedia = loaded;
             normalizeCurrentMedia();
 
-            viewX = width / 2; 
-            viewY = height / 2; 
-
-            let zoomSlider = document.getElementById('zoomSlider');
-            let initialZoom = Math.min((width * 0.8) / img.width, (height * 0.8) / img.height, 1.0);
-            zoomSlider.value = Math.max(0.05, initialZoom).toFixed(2);
+            fitMediaToViewport();
 
             redraw(); 
             document.dispatchEvent(new Event('micelium:image-ready'));
@@ -1942,12 +1946,7 @@ function loadGifFile(file) {
             updateCanvasSize();
             document.getElementById('btnPlayPause').innerText = "PAUSE";
 
-            viewX = width / 2;
-            viewY = height / 2;
-
-            let zoomSlider = document.getElementById('zoomSlider');
-            let initialZoom = Math.min((width * 0.8) / img.width, (height * 0.8) / img.height, 1.0);
-            zoomSlider.value = Math.max(0.05, initialZoom).toFixed(2);
+            fitMediaToViewport();
 
             syncGifFrame(0);
             updateBottomBarUI();
@@ -1969,12 +1968,7 @@ function loadGifFile(file) {
             document.getElementById('drop-zone').style.display = 'none'; 
             document.getElementById('canvas-holder').style.display = 'block';
 
-            viewX = width / 2;
-            viewY = height / 2;
-
-            let zoomSlider = document.getElementById('zoomSlider');
-            let initialZoom = Math.min((width * 0.8) / img.width, (height * 0.8) / img.height, 1.0);
-            zoomSlider.value = Math.max(0.05, initialZoom).toFixed(2);
+            fitMediaToViewport();
 
             redraw();
         }
@@ -2021,12 +2015,7 @@ function loadVideoFile(file) {
         updateCanvasSize();
         document.getElementById('btnPlayPause').innerText = "PAUSE";
 
-        viewX = width / 2;
-        viewY = height / 2;
-
-        let zoomSlider = document.getElementById('zoomSlider');
-        let initialZoom = Math.min((width * 0.8) / img.width, (height * 0.8) / img.height, 1.0);
-        zoomSlider.value = Math.max(0.05, initialZoom).toFixed(2);
+        fitMediaToViewport();
 
         videoEl.play();
         loop();
