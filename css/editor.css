@@ -1,5 +1,5 @@
 /* Feature styles are scoped so the original sidebar and export UI stay intact. */
-#editor-nav, #animate-panel, #about-dialog { font-family: var(--font-mono); color: #000; background: #fff; font-size: 10px; }
+#editor-nav, #animate-panel, #about-dialog { font-family: var(--font-mono); color: #000; background: #fff; font-size: 12px; }
 #editor-nav *, #animate-panel *, #about-dialog * { box-sizing: border-box; }
 #editor-nav button, #animate-panel button, #about-dialog button {
     appearance: none; font: inherit; color: inherit; background: #fff; border: 1px solid #000;
@@ -10,41 +10,41 @@
 #animate-panel button:disabled { opacity: .35; cursor: default; background: #fff; color: #000; }
 #editor-nav [hidden], #animate-panel[hidden], #animate-panel [hidden] { display: none !important; }
 #editor-nav { position: absolute; top: 16px; right: 16px; z-index: 65; background: transparent; }
-#editor-nav #menu-toggle { display: flex; gap: 24px; align-items: center; font-size: 9px; }
+#editor-nav #menu-toggle { display: flex; gap: 24px; align-items: center; font-size: 11px; }
 #editor-menu { position: absolute; top: calc(100% + 6px); right: 0; width: 218px; padding: 5px; border: 1px solid #000; background: #fff; }
 #editor-menu button { width: 100%; border: 0; display: flex; align-items: center; justify-content: space-between; text-align: left; padding: 12px 9px; }
 #editor-menu button[aria-pressed="true"] { text-decoration: underline; text-underline-offset: 4px; }
 #about-dialog { border: 1px solid #000; padding: 24px; width: min(420px, calc(100vw - 32px)); }
 #about-dialog::backdrop { background: rgb(0 0 0 / 28%); }
 #about-dialog header { display: flex; align-items: center; justify-content: space-between; gap: 30px; }
-#about-dialog h2 { font-size: 13px; font-weight: 400; letter-spacing: 2px; }
+#about-dialog h2 { font-size: 15px; font-weight: 400; letter-spacing: 2px; }
 #about-dialog p { line-height: 1.8; margin-top: 22px; }
-.editor-note { font-size: 9px; line-height: 1.5; color: #666; }
+.editor-note { font-size: 11px; line-height: 1.5; color: #666; }
 #viewport.viewport-dark { background: #000; }
 #viewport.viewport-dark #drop-zone { background: #111; color: #fff; border-color: #fff; }
 #viewport.viewport-dark #drop-zone:hover { background: #222; }
 #viewport.viewport-dark #status-bar { color: #aaa; }
 #animate-panel { flex: 0 0 auto; border-top: 1px solid #000; z-index: 61; padding: 12px 16px; max-height: 48vh; overflow: auto; }
-#animate-panel h2 { margin: 0; font-size: 10px; letter-spacing: 1.5px; font-weight: 400; }
+#animate-panel h2 { margin: 0; font-size: 12px; letter-spacing: 1.5px; font-weight: 400; }
 .animate-header, .animate-transport, .animate-key-actions { display: flex; align-items: center; gap: 10px; }
 .animate-header { padding-bottom: 10px; border-bottom: 1px dotted #aaa; }
-#animate-panel label { font-size: 9px; letter-spacing: .5px; }
-#animate-panel #animate-close { margin-left: auto; padding: 2px 8px; font-size: 17px; border: 0; }
+#animate-panel label { font-size: 11px; letter-spacing: .5px; }
+#animate-panel #animate-close { margin-left: auto; padding: 2px 8px; font-size: 19px; border: 0; }
 #animate-panel .animate-source { position: relative; border: 1px solid #000; padding: 7px 10px; cursor: pointer; }
 #animate-panel .animate-source:hover { background: #000; color: #fff; }
 #animate-source { position: absolute; inset: 0; opacity: 0; width: 100%; cursor: pointer; }
 .animate-body { display: grid; grid-template-columns: minmax(0, 1fr) 200px; gap: 24px; padding-top: 12px; }
 .animate-sequence { min-width: 0; }
-#animate-panel input[type="number"], #animate-panel select { font: inherit; font-size: 10px; color: #000; background: #fff; border: 1px solid #000; border-radius: 0; padding: 4px; }
+#animate-panel input[type="number"], #animate-panel select { font: inherit; font-size: 12px; color: #000; background: #fff; border: 1px solid #000; border-radius: 0; padding: 4px; }
 #animate-panel input[type="number"] { width: 55px; }
 #animate-panel #animate-key-time { width: 63px; }
-#animate-time { font-size: 10px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+#animate-time { font-size: 12px; white-space: nowrap; font-variant-numeric: tabular-nums; }
 #animate-performance { margin-left: auto; white-space: nowrap; }
 #animate-track { position: relative; height: 62px; margin: 14px 8px 0; border-bottom: 1px solid #000; touch-action: none; cursor: crosshair; }
-.animate-ruler { display: flex; justify-content: space-between; font-size: 9px; color: #666; padding-top: 1px; }
+.animate-ruler { display: flex; justify-content: space-between; font-size: 11px; color: #666; padding-top: 1px; }
 #animate-playhead { position: absolute; top: 18px; bottom: -5px; width: 1px; background: #000; pointer-events: none; }
 #animate-playhead::before { content: ''; position: absolute; top: -2px; left: -3px; width: 7px; height: 7px; background: #000; }
-#animate-markers .animate-key { position: absolute; top: 29px; transform: translateX(-50%); border: 1px solid transparent; background: #fff; color: #000; padding: 2px 4px; font-size: 16px; line-height: 1; z-index: 1; touch-action: none; cursor: ew-resize; }
+#animate-markers .animate-key { position: absolute; top: 29px; transform: translateX(-50%); border: 1px solid transparent; background: #fff; color: #000; padding: 2px 4px; font-size: 18px; line-height: 1; z-index: 1; touch-action: none; cursor: ew-resize; }
 #animate-markers .animate-key[aria-pressed="true"] { border-color: #000; }
 #animate-markers .animate-key:hover { background: #000; color: #fff; }
 #animate-panel #animate-scrub { display: block; width: calc(100% - 16px); margin: 6px 8px 12px; height: 12px; cursor: ew-resize; }
@@ -60,7 +60,7 @@
 #animate-curve circle { fill: #fff; stroke: #000; stroke-width: 1; cursor: move; }
 #animate-bezier { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
 #animate-bezier label { display: flex; flex-direction: column; gap: 3px; }
-#animate-panel #animate-bezier input { width: 100%; min-width: 0; font-size: 9px; }
+#animate-panel #animate-bezier input { width: 100%; min-width: 0; font-size: 11px; }
 @media (max-width: 1050px) {
     .animate-body { grid-template-columns: minmax(0, 1fr) 160px; gap: 12px; }
     .animate-transport { flex-wrap: wrap; gap: 6px; }
@@ -92,18 +92,47 @@
 #animate-segments .animate-segment:hover { background: #eee; color: #000; }
 .animate-segment svg { position: absolute; inset: 2px 4px 9px; width: calc(100% - 8px); height: 30px; pointer-events: none; }
 .animate-segment path { stroke: #000; stroke-width: 1; fill: none; vector-effect: non-scaling-stroke; }
-.animate-segment span { position: absolute; bottom: 1px; left: 5px; font-size: 8px; white-space: nowrap; pointer-events: none; }
+.animate-segment span { position: absolute; bottom: 1px; left: 5px; font-size: 10px; white-space: nowrap; pointer-events: none; }
 #animate-transition { min-height: 13px; color: #000; }
 #animate-panel #animate-curve { height: 112px; }
-#animation-export-dialog { width: min(460px, calc(100vw - 32px)); padding: 22px; border: 1px solid #000; background: #fff; color: #000; font-family: var(--font-mono); font-size: 11px; }
+#animation-export-dialog { width: min(460px, calc(100vw - 32px)); padding: 22px; border: 1px solid #000; background: #fff; color: #000; font-family: var(--font-mono); font-size: 13px; }
 #animation-export-dialog::backdrop { background: rgb(0 0 0 / 35%); }
 #animation-export-dialog header, #animation-export-dialog footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-#animation-export-dialog h2 { font-size: 11px; font-weight: 400; letter-spacing: 1.3px; }
+#animation-export-dialog h2 { font-size: 13px; font-weight: 400; letter-spacing: 1.3px; }
 #animation-export-dialog button, #animation-export-dialog select { appearance: auto; border: 1px solid #000; border-radius: 0; background: #fff; color: #000; font: inherit; padding: 7px 10px; cursor: pointer; }
 #animation-export-dialog button:hover { background: #000; color: #fff; }
 #animation-export-dialog button:disabled { opacity: .4; cursor: default; }
 #animation-export-dialog fieldset { display: flex; flex-wrap: wrap; gap: 16px; padding: 12px 0; margin: 0; border: 0; }
-#animation-export-dialog label { display: flex; flex-direction: column; gap: 7px; font-size: 9px; }
+#animation-export-dialog label { display: flex; flex-direction: column; gap: 7px; font-size: 11px; }
 #animation-export-progress { width: 100%; height: 5px; accent-color: #000; }
 #animation-export-status { min-height: 28px; line-height: 1.5; }
 #animation-export-dialog footer { justify-content: flex-end; border-top: 1px dotted #aaa; padding-top: 14px; }
+
+/* Key creation and overwriting are explicit; dense keys also have a readable list. */
+#animate-panel { max-height: 58vh; }
+#animate-panel h2 { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+#animate-help { border-bottom: 1px dotted #aaa; padding: 10px 0; line-height: 1.65; }
+#animate-help summary { cursor: pointer; letter-spacing: .5px; }
+#animate-help ol { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; padding-left: 22px; margin: 12px 0; }
+#animate-help li { padding-left: 2px; }
+#animate-help p { margin: 8px 0 0; color: #555; }
+#animate-panel #animate-track { height: 120px; margin-left: 20px; margin-right: 20px; }
+#animate-markers .animate-key { top: 28px; min-width: 30px; height: 28px; padding: 5px; font-size: 12px; border: 1px solid #000; }
+#animate-markers .animate-key::before { content: ''; position: absolute; width: 5px; height: 5px; top: -5px; left: calc(50% - 3px); border: 1px solid #000; background: #fff; transform: rotate(45deg); }
+#animate-markers .animate-key[aria-pressed="true"], #animate-key-list button[aria-pressed="true"] { background: #000; color: #fff; }
+#animate-markers .animate-key[aria-pressed="true"]::before { background: #000; }
+#animate-segments .animate-segment { top: 68px; height: 43px; }
+#animate-playhead { background: #b33c1e; }
+#animate-playhead::before { background: #b33c1e; }
+#animate-panel #animate-scrub { width: calc(100% - 40px); margin-left: 20px; margin-right: 20px; }
+#animate-key-list { display: flex; gap: 5px; overflow-x: auto; padding: 4px 0; }
+#animate-key-list button { flex-shrink: 0; padding: 5px 8px; font-size: 11px; }
+#animate-key-status { padding: 9px 10px; margin: 8px 0; border-left: 3px solid #000; background: #f3f3f3; line-height: 1.5; }
+#animate-key-status.has-draft { border-color: #b33c1e; background: #fff3eb; }
+#animate-panel #animate-add { background: #000; color: #fff; min-height: 36px; }
+#animate-panel #animate-add.has-draft { outline: 2px solid #b33c1e; outline-offset: 2px; }
+#animate-panel #animate-add:disabled { background: #eee; color: #666; }
+#animate-panel input[type="number"] { width: 67px; }
+@media (max-width: 1050px) {
+    #animate-help ol { grid-template-columns: 1fr; gap: 8px; }
+}

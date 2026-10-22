@@ -2,18 +2,25 @@
     'use strict';
     const { clamp, sample, upsert, presets, ease } = window.MiceliumTimeline;
     const editor = window.MiceliumEditor;
+    const phoneLayout = matchMedia('(max-width: 767px), (max-height: 500px) and (pointer: coarse)');
     const composition = new window.MiceliumComposition(editor, { retainDrawing: true });
     const panel = document.createElement('section');
     panel.id = 'animate-panel'; panel.setAttribute('data-editor-overlay', ''); panel.hidden = true;
     panel.setAttribute('aria-label', 'Animation editor');
-    panel.innerHTML = `<header class="animate-header"><h2>ANIMATE</h2>
+    panel.innerHTML = `<header class="animate-header"><h2>ANIMATION <span class="menu-badge">WORK IN PROGRESS</span></h2>
         <label class="animate-source"><span>LOAD IMAGE</span><input id="animate-source" type="file" accept="image/png,image/jpeg,image/webp,image/bmp,image/svg+xml" aria-label="Load animation image"></label>
         <label>DURATION <input id="animate-duration" type="number" min="1" max="30" step="0.1" value="15" aria-label="Animation duration in seconds"> S</label>
         <label class="animate-loop-label" title="Stretch keyframes proportionally when changing duration"><input id="animate-retime" type="checkbox" checked> RETIME KEYS</label>
         <label>FRAME <select id="animate-resolution" aria-label="Composition resolution"><option value="720">720 PX</option><option value="1080">1080 PX</option><option value="1920">1920 PX</option><option value="source">SOURCE (MAX 1920)</option></select></label>
         <label>DETAIL <select id="animate-detail" aria-label="Animation detail" title="Fixed detail shared by preview and export"><option value="480">BALANCED</option><option value="720">FINE</option><option value="source" selected>SOURCE</option></select></label>
-        <button id="animate-fit" title="Drag to pan; pinch or Ctrl/⌘ + scroll to zoom. Fit resets the view without changing keyframes or export.">FIT VIEW</button><span id="animate-view-zoom" class="editor-note">100%</span><span id="animate-frame-size" class="editor-note"></span><button id="animate-export">EXPORT ANIMATION</button>
+        <button id="animate-fit" title="Drag to pan; pinch or Ctrl/Cmd + scroll to zoom. Fit resets the view without changing keyframes or export.">FIT VIEW</button><span id="animate-view-zoom" class="editor-note">100%</span><span id="animate-frame-size" class="editor-note"></span><button id="animate-export">EXPORT ANIMATION</button>
         <button id="animate-close" aria-label="Close Animate">×</button></header>
+        <details id="animate-help"><summary>HOW TO ANIMATE · ADD &amp; OVERWRITE KEYFRAMES</summary>
+            <ol><li><strong>Start.</strong> Load a still image. Keyframe 01 is saved at 0 s. Adjust the sidebar parameters, then click <strong>Overwrite keyframe 01</strong> to save your starting look.</li>
+            <li><strong>Add.</strong> Click an empty time on the timeline or use SEEK. Adjust the parameters, then click <strong>Add keyframe</strong>. Use <strong>End key</strong> for the final look. Add at least two keys to animate.</li>
+            <li><strong>Edit &amp; save.</strong> Click a numbered key to load it. Move any sidebar parameter, then click <strong>Overwrite keyframe</strong>. Your new values replace that key; other keys stay unchanged. Changes are a draft until saved.</li></ol>
+            <p>Drag keys to move them in time; use Left/Right for fine adjustments (Shift for larger steps). Click a strip below the keys to edit its transition. Play previews saved keys. Save changes before seeking or exporting. Keys are kept only until this page is reloaded.</p>
+        </details>
         <div class="animate-body"><div class="animate-sequence">
         <div class="animate-transport"><button id="animate-play">PLAY</button><button id="animate-pause" disabled>PAUSE</button><button id="animate-restart" title="Play from the beginning">RESTART</button><button id="animate-stop" title="Pause and return to zero">STOP</button><button id="animate-prev" aria-label="Previous keyframe">‹ KEY</button><button id="animate-next" aria-label="Next keyframe">KEY ›</button>
             <output id="animate-time" aria-label="Current animation time">00:00.00 / 00:15.00</output>
@@ -21,9 +28,11 @@
         <div id="animate-track" aria-label="Keyframe timeline"><div class="animate-ruler" aria-hidden="true"><span>0</span><span>5</span><span>10</span><span id="animate-end-label">15 S</span></div>
             <div id="animate-segments"></div><div id="animate-markers"></div><div id="animate-playhead" aria-hidden="true"></div></div>
         <input id="animate-scrub" type="range" min="0" max="15" value="0" step="0.001" aria-label="Scrub animation time">
-        <div class="animate-key-actions"><button id="animate-add">＋ KEYFRAME</button><button id="animate-add-end">＋ END KEY</button><button id="animate-delete" disabled>DELETE</button>
+        <div id="animate-key-list" role="group" aria-label="Saved keyframes"></div>
+        <p id="animate-key-status" role="status" aria-live="polite"></p>
+        <div class="animate-key-actions"><button id="animate-add">+ KEYFRAME</button><button id="animate-add-end">+ END KEY</button><button id="animate-delete" disabled>DELETE</button>
             <label>KEY TIME <input id="animate-key-time" type="number" min="0" max="15" step="0.01" disabled aria-label="Selected keyframe time"> S</label><label>SEEK <input id="animate-seek-time" type="number" min="0" max="15" step="0.01" value="0" aria-label="Playhead time in seconds"> S</label></div>
-        <p id="animate-message" class="editor-note" role="status">Load an image, adjust the sidebar, then add a keyframe. Scrub to another time and repeat.</p>
+        <p id="animate-message" class="editor-note" role="status">Load a still image to begin. Open HOW TO ANIMATE for the steps.</p>
         </div><div class="animate-easing">
         <span id="animate-transition" class="editor-note"></span><label for="animate-ease">TRANSITION CURVE</label>
         <select id="animate-ease" disabled><option value="linear">Linear</option><option value="ease-in">Ease In</option><option value="ease-out">Ease Out</option><option value="ease-in-out">Ease In-Out</option><option value="custom">Custom Bezier</option></select>
@@ -41,6 +50,22 @@
     const format = t => `${String(Math.floor(t / 60)).padStart(2, '0')}:${(t % 60).toFixed(2).padStart(5, '0')}`;
     const message = text => { $('animate-message').textContent = text; };
     const current = () => frames.find(f => f.id === selected);
+    function renderKeyState() {
+        const index = frames.findIndex(frame => Math.abs(frame.time - time) < 1 / 120);
+        const key = frames[index], number = String(index + 1).padStart(2, '0');
+        const ready = editor.ready(), dirty = ready && !playing && key && JSON.stringify(editor.capture()) !== JSON.stringify(key.values);
+        const status = !ready ? 'Load a still image to create your first keyframe.' : playing ? 'Playing saved keys · Pause to edit a keyframe.' : key
+            ? `KEYFRAME ${number} · ${key.time.toFixed(2)} S · ${dirty ? 'UNSAVED CHANGES — click Overwrite to save.' : 'SAVED — adjust sidebar parameters, then Overwrite.'}`
+            : `NO KEY AT ${time.toFixed(2)} S · Adjust sidebar parameters, then Add keyframe.`;
+        if ($('animate-key-status').textContent !== status) $('animate-key-status').textContent = status;
+        $('animate-key-status').classList.toggle('has-draft', !!dirty);
+        $('animate-add').disabled = !ready || playing;
+        $('animate-add-end').disabled = !ready || playing;
+        $('animate-add').textContent = key ? `OVERWRITE KEYFRAME ${number}` : '+ ADD KEYFRAME';
+        $('animate-add').title = key ? `Replace the saved parameters of keyframe ${number} at ${key.time.toFixed(2)} s with the current sidebar values` : `Save the current sidebar values as a new keyframe at ${time.toFixed(2)} s`;
+        $('animate-add-end').textContent = frames.some(frame => Math.abs(frame.time - duration) < 1 / 120) ? 'OVERWRITE END KEY' : '+ END KEY';
+        $('animate-add').classList.toggle('has-draft', !!dirty);
+    }
     const settings = () => ({
         longEdge: $('animate-resolution').value === 'source' ? Math.min(1920, Math.max(editor.image().width, editor.image().height)) : Number($('animate-resolution').value),
         cameraBase, detail: $('animate-detail').value, dark: document.getElementById('viewport').classList.contains('viewport-dark')
@@ -83,6 +108,7 @@
         $('animate-playhead').style.left = `${time / duration * 100}%`;
         $('animate-time').textContent = `${format(time)} / ${format(duration)}`;
         scrub.setAttribute('aria-valuetext', `${time.toFixed(2)} seconds`);
+        renderKeyState();
     }
     function renderCurve() {
         const frame = curveFrame(), next = frame && frames[frames.indexOf(frame) + 1];
@@ -114,6 +140,8 @@
     }
     function renderKeys() {
         const markers = $('animate-markers'); markers.replaceChildren();
+        const keyList = $('animate-key-list'), listScroll = keyList.scrollLeft;
+        keyList.replaceChildren();
         frames.forEach((frame, index) => {
             const button = document.createElement('button');
             button.type = 'button'; button.className = 'animate-key';
@@ -121,16 +149,27 @@
             button.style.left = `${frame.time / duration * 100}%`;
             button.setAttribute('aria-label', `Keyframe ${index + 1} at ${frame.time.toFixed(2)} seconds`);
             button.setAttribute('aria-pressed', String(frame.id === selected));
-            button.title = `${frame.time.toFixed(2)} s · drag to move`;
-            button.innerHTML = '<span aria-hidden="true">◆</span>';
+            button.title = `Keyframe ${index + 1} · ${frame.time.toFixed(2)} s · click to edit, drag to move`;
+            button.textContent = String(index + 1).padStart(2, '0');
             markers.append(button);
+            const shortcut = document.createElement('button');
+            shortcut.type = 'button'; shortcut.className = 'animate-key-shortcut';
+            shortcut.dataset.key = frame.id;
+            shortcut.textContent = `${String(index + 1).padStart(2, '0')} · ${frame.time.toFixed(2)} s`;
+            shortcut.setAttribute('aria-label', `Edit keyframe ${index + 1} at ${frame.time.toFixed(2)} seconds`);
+            shortcut.setAttribute('aria-pressed', String(frame.id === selected));
+            shortcut.onclick = () => {
+                jumpKey(frame);
+                $('animate-key-list').querySelector(`[data-key="${frame.id}"]`)?.focus({ preventScroll: true });
+            };
+            keyList.append(shortcut);
         });
+        keyList.scrollLeft = listScroll;
         const frame = current();
         $('animate-delete').disabled = !frame;
         $('animate-key-time').disabled = !frame;
         $('animate-key-time').value = frame ? frame.time.toFixed(2) : '';
-        $('animate-add').textContent = frames.some(f => Math.abs(f.time - time) < 1 / 120) ? 'SAVE KEYFRAME' : '＋ KEYFRAME';
-        $('animate-add-end').textContent = frames.some(f => Math.abs(f.time - duration) < 1 / 120) ? 'SAVE END KEY' : '＋ END KEY';
+        renderKeyState();
         renderSegments(); renderCurve();
     }
     function seek(value) {
@@ -142,6 +181,7 @@
         cancelAnimationFrame(raf); raf = 0; playing = false;
         $('animate-play').disabled = false; $('animate-pause').disabled = true;
         $('animate-play').textContent = time > 0 && time < duration ? 'RESUME' : 'PLAY';
+        renderKeyState();
     }
     function tick(stamp) {
         if (!playing) return;
@@ -159,7 +199,7 @@
         else raf = requestAnimationFrame(tick);
     }
     function play() {
-        if (playing || exporting) return;
+        if (playing || exporting || phoneLayout.matches) return;
         if (!editor.ready()) { message('Load a still image and wait for OpenCV to finish loading.'); return; }
         if (frames.length < 2) { message('Add at least two keyframes at different times to play.'); return; }
         if (time >= duration) seek(0);
@@ -173,6 +213,7 @@
     function toggle(force) {
         if (exporting) return;
         const next = typeof force === 'boolean' ? force : !active;
+        if (next && phoneLayout.matches) return;
         if (next && !editor.hasImage() && document.getElementById('videoBottomBar').style.display !== 'none') {
             message('Animate uses still images. Load one using the sidebar first.');
             document.getElementById('status-bar').textContent = 'Animate: load a still image first.';
@@ -187,6 +228,9 @@
         if (active) { renderTime(); renderKeys(); $('animate-source').focus(); }
         else document.getElementById('menu-toggle')?.focus();
     }
+    phoneLayout.addEventListener('change', event => {
+        if (event.matches && active) toggle(false);
+    });
     function moveKey(id, value) {
         const frame = frames.find(f => f.id === id);
         const t = Math.round(clamp(value, 0, duration) * 100) / 100;
@@ -225,7 +269,7 @@
         const frame = { id: existing?.id || String(nextId++), time: keyTime,
             values: editor.capture(), easing: existing?.easing || 'linear' };
         frames = upsert(frames, frame); selected = frame.id; segmentId = null; time = keyTime; renderKeys(); renderTime();
-        message('Keyframe saved. Scrub, adjust the sidebar, then add another keyframe.');
+        message(existing ? `Keyframe ${frames.findIndex(key => key.id === frame.id) + 1} overwritten at ${keyTime.toFixed(2)} s. Your parameter changes are saved.` : `Keyframe added at ${keyTime.toFixed(2)} s. Seek to another time, adjust the sidebar and add the next key.`);
     }
     function deleteKey() {
         pause(false); frames = frames.filter(f => f.id !== selected); selected = null;
@@ -322,18 +366,24 @@
     curve.addEventListener('pointerup', () => { curveHandle = null; });
     curve.addEventListener('pointercancel', () => { curveHandle = null; });
     // Cancel playback before existing control listeners handle user edits.
-    document.getElementById('ui').addEventListener('input', event => { if (active) pause(); }, true);
+    function sidebarEdited() {
+        if (!active) return;
+        pause();
+        // Run after the sketch and bridge have applied select/range changes.
+        queueMicrotask(renderKeyState);
+    }
+    document.getElementById('ui').addEventListener('input', sidebarEdited, true);
     document.getElementById('ui').addEventListener('change', () => {
-        if (active) { pause(); message('Parameters changed. Save a keyframe before scrubbing or exporting.'); }
+        if (active) { sidebarEdited(); message('Parameters changed. Click Overwrite at an existing key, or Add keyframe at a new time. Save before seeking or exporting.'); }
     }, true);
     document.getElementById('ui').addEventListener('click', event => {
-        if (active && event.target.closest('#btnZoomIn, #btnZoomOut')) pause();
+        if (active && event.target.closest('#btnZoomIn, #btnZoomOut')) sidebarEdited();
     }, true);
     document.getElementById('viewport').addEventListener('dblclick', event => {
         if (!active || !editor.ready()) return;
         if (event.target !== event.currentTarget && !event.target.closest('#canvas-holder')) return;
         event.preventDefault(); event.stopImmediatePropagation(); viewport.reset();
-        message('View fitted. Drag to pan; pinch or Ctrl/⌘ + scroll to zoom. Inspection does not change export.');
+        message('View fitted. Drag to pan; pinch or Ctrl/Cmd + scroll to zoom. Inspection does not change export.');
     }, true);
     document.getElementById('btnExportSettings').addEventListener('click', () => pause(), true);
     document.addEventListener('micelium:media-loading', event => {
@@ -381,6 +431,7 @@
         finishExport(saved) {
             exporting = false; time = saved.time; selected = saved.selected;
             editor.apply(saved.currentState); editor.render(); renderTime(); renderKeys();
+            if (phoneLayout.matches && active) toggle(false);
         },
         // Read-only inspection is useful for tests and future project serialization.
         snapshot: () => ({ active, playing, time, duration, selected, segmentId, exporting, cameraBase, frames: structuredClone(frames) })

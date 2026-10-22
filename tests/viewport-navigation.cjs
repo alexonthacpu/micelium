@@ -101,7 +101,8 @@ const useWebKit = process.env.BROWSER === 'webkit';
         await page.mouse.move(c.x + c.width / 2, c.y + c.height / 2);
         await page.mouse.down(); await page.mouse.move(c.x + c.width / 2 + 60, c.y + c.height / 2 + 25, { steps: 8 }); await page.mouse.up(); await settle();
         let after = await read(); assert.ok(after.view.x > 55 && after.view.y > 20);
-        const target = { x: c.width * .6, y: c.height * .4 };
+        // WheelEvent client coordinates are integers; avoid subpixel rounding in synthetic input.
+        const target = { x: Math.round(c.width * .6), y: Math.round(c.height * .4) };
         await page.locator('#canvas-holder canvas').evaluate((el, target) => {
             const r = el.getBoundingClientRect();
             el.dispatchEvent(new WheelEvent('wheel', { bubbles: true, cancelable: true, ctrlKey: true, deltaY: -40, clientX: r.left + target.x, clientY: r.top + target.y }));

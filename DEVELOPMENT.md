@@ -9,8 +9,9 @@ From the repository root:
 python3 -m http.server 8000 --bind 127.0.0.1
 ```
 
-Open the server in a browser. All runtime scripts and fonts are local in
-`vendor/`; CDN access is not required. OpenCV's WebAssembly payload is embedded
+Open the server in a browser. All runtime scripts are local in `vendor/`;
+the interface uses only the local WTGaramono regular/italic files in `font/`.
+CDN access is not required. OpenCV's WebAssembly payload is embedded
 in its JavaScript file. Keep HTTP enabled locally rather than relying on `file:`.
 
 ## Browser smoke check
@@ -51,12 +52,18 @@ are not application entry points.
 
 ## Menu and Animate
 
-The top-right menu opens About, Animate and viewport dark mode. Ordinary PNG/SVG
+The top-right menu opens About, Animation (marked **Work in progress**) and viewport dark mode. Ordinary PNG/SVG
 exports retain their existing explicit palettes. Animation compositions and
 animation exports follow the selected viewport palette.
 
 Load a still image: Animate saves an initial key at zero. Adjust the sidebar
-and save the key; seek to another time and add the next one. **End Key** saves
+and click **Overwrite keyframe 01** to save the key; seek to another time and
+click **Add keyframe** to add the next one. At a saved key's time, the primary
+button explicitly becomes **Overwrite keyframe**; sidebar edits remain a draft
+until that button is clicked. The status strip highlights unsaved changes.
+Numbered timeline markers and a scrollable list identify each saved key and its
+time; selected keys have a solid fill. **How to animate** explains creation,
+overwriting, navigation and transitions. **End Key** saves
 the current parameters at the duration endpoint. Duration accepts 1–30 seconds.
 **Retime Keys** stretches all key times and the playhead proportionally by
 default. Uncheck it to retain absolute timing; shortening is rejected if later
@@ -146,9 +153,11 @@ node tests/editor.cjs
 node tests/navigation.cjs
 node tests/animation-workflow.cjs
 node tests/viewport-navigation.cjs
+node tests/responsive.cjs
 ```
 
-Set `BROWSER=webkit` to run browser suites in Playwright WebKit. Workflow tests
+Set `BROWSER=webkit` to run the existing browser suites in Playwright WebKit;
+the touch/font suite `responsive.cjs` uses Chromium. Workflow tests
 exercise all six composition styles, 1–30 seconds and retiming, live transition
 editing, pause/resume/restart/stop/loop, real PNG ZIP frame counts/metadata,
 byte-identical preview/export samples, video recording/decoding when supported,
@@ -159,6 +168,32 @@ parameters, palette, playback and composition pixels. Existing suites check orig
 image/video upload and menu behavior with external requests blocked.
 `node tests/playback-performance.cjs` reports observational FPS on a generated
 1024×1024 source; it does not assert a universal frame rate.
+
+## Phone layout and typography
+
+At widths up to 767 px, and on coarse-pointer landscape screens up to 500 px
+high, the viewport stays above an independently scrolling controls pane. The
+decorative logo is hidden, a Load File button remains available after upload,
+and controls use larger touch targets and native selects. Image styles,
+PNG/SVG export and the existing media player remain available. Export dialogs
+scroll within the available screen height.
+
+Animation is disabled in the phone menu and cannot be opened through its
+controller there. Moving an open desktop editor into the phone layout pauses
+and closes it while retaining keys for the page session. An in-progress
+animation export is cancelled when entering the phone layout.
+
+Desktop text is 2 px larger than the previous baseline. All interface text,
+including inputs, selects and dialogs, uses WTGaramono. UI symbols absent from
+the font use CSS shapes or supported text, avoiding an implicit second font.
+The older vendored font artifacts remain unchanged but are no longer loaded.
+
+`tests/responsive.cjs` uses Chromium touch emulation to check phone scrolling,
+all six styles, parameter edits, PNG/SVG downloads, narrow and landscape layouts,
+the basic video player and desktop-only Animation. It also verifies actual
+Garamono glyph rendering, explicit keyframe overwrite without changing other
+keys, interpolation after saving, and timeline preservation across layout changes.
+Physical phones and native Safari still require a manual check.
 
 
 ## Navigation compatibility checks

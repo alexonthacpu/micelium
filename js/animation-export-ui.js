@@ -19,6 +19,11 @@
         const option = document.createElement('option'); option.value = type.ext; option.textContent = type.label; $('format').append(option);
     }
     function close() { if (controller) controller.abort(); else dialog.close(); }
+    matchMedia('(max-width: 767px), (max-height: 500px) and (pointer: coarse)').addEventListener('change', event => {
+        if (event.matches && dialog.open) {
+            controller?.abort(); dialog.close();
+        }
+    });
     $('close').onclick = close; $('cancel').onclick = close;
     dialog.addEventListener('cancel', event => { if (controller) { event.preventDefault(); controller.abort(); } });
     document.addEventListener('visibilitychange', () => { if (document.hidden) controller?.abort(); });

@@ -2,8 +2,8 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>MYCLM VERSION 16.0</title>
-    <link href="vendor/fonts.css" rel="stylesheet">
     <link href="css/editor.css" rel="stylesheet">
     <script src="vendor/p5-1.4.2.min.js"></script>
     <script src="vendor/p5.svg-1.3.1.js"></script>
@@ -13,34 +13,34 @@
             src: url('font/WTGaramonoTRIAL-Regular.otf') format('opentype');
             font-weight: 400;
             font-style: normal;
-            font-display: swap;
+            font-display: block;
         }
         @font-face {
             font-family: 'WTGaramono';
             src: url('font/WTGaramonoTRIAL-Italic.otf') format('opentype');
             font-weight: 400;
             font-style: italic;
-            font-display: swap;
+            font-display: block;
         }
         @font-face {
             font-family: 'WTGaramono';
             src: url('font/WTGaramonoTRIAL-Regular.otf') format('opentype');
             font-weight: 600;
             font-style: normal;
-            font-display: swap;
+            font-display: block;
         }
         @font-face {
             font-family: 'WTGaramono';
             src: url('font/WTGaramonoTRIAL-Regular.otf') format('opentype');
             font-weight: 700;
             font-style: normal;
-            font-display: swap;
+            font-display: block;
         }
         :root { 
             --bg: #ffffff; 
             --fg: #000000; 
             --border: 1px solid #000; 
-            --font-mono: 'WTGaramono', 'Nickota', 'JetBrains Mono', 'Space Mono', 'SF Mono', 'Menlo', 'Monaco', 'Consolas', monospace;
+            --font-mono: 'WTGaramono';
         }
         * {
             box-sizing: border-box;
@@ -49,7 +49,7 @@
             margin: 0; padding: 0; background: var(--bg); color: var(--fg);
             font-family: var(--font-mono); display: flex;
             height: 100vh; overflow: hidden;
-            font-size: 11px;
+            font-size: 13px;
             letter-spacing: -0.2px;
         }
         
@@ -139,7 +139,7 @@
 
         /* ---- LABELS ---- */
         .ui-label, .label {
-            font-size: 9.5px;
+            font-size: 11.5px;
             font-weight: 400;
             font-style: normal;
             color: #000;
@@ -152,7 +152,7 @@
             font-style: italic !important;
             text-transform: uppercase;
             letter-spacing: 0.6px;
-            font-size: 9.5px;
+            font-size: 11.5px;
             margin-bottom: 5px;
         }
 
@@ -172,7 +172,7 @@
             width: 24px; height: 24px;
             border: 1px solid #000;
             background: #fff;
-            font-size: 14px; font-weight: 400;
+            font-size: 16px; font-weight: 400;
             line-height: 1; cursor: pointer;
             user-select: none;
             display: flex; align-items: center; justify-content: center;
@@ -198,7 +198,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            font-size: 9px;
+            font-size: 11px;
             font-weight: 400;
             font-style: normal;
             text-transform: uppercase;
@@ -242,7 +242,7 @@
             border: none;
             padding: 11px 8px;
             font-family: inherit;
-            font-size: 9.5px;
+            font-size: 11.5px;
             font-weight: 700;
             letter-spacing: 1.5px;
             text-transform: uppercase;
@@ -258,7 +258,7 @@
         .custom-radio {
             display: flex; align-items: center; position: relative;
             padding-left: 18px; margin-bottom: 6px; cursor: pointer;
-            font-size: 9px; text-transform: none; font-weight: 400;
+            font-size: 11px; text-transform: none; font-weight: 400;
             user-select: none;
         }
         .custom-radio input { position: absolute; opacity: 0; cursor: pointer; }
@@ -296,7 +296,7 @@
             box-sizing: border-box;
         }
         .cselect-label {
-            font-size: 9.5px;
+            font-size: 11.5px;
             font-weight: 400;
             padding: 0 8px;
             color: #000;
@@ -337,7 +337,7 @@
             align-items: center;
             height: 24px;
             padding: 0 8px;
-            font-size: 9.5px;
+            font-size: 11.5px;
             font-weight: 400;
             cursor: pointer;
             color: #000;
@@ -359,7 +359,7 @@
         }
         .cselect-check {
             visibility: hidden;
-            font-size: 11px;
+            font-size: 13px;
             margin-right: 8px;
             flex-shrink: 0;
         }
@@ -417,14 +417,14 @@
             height: 100% !important;
         }
         
-        #status-bar { position: absolute; bottom: 10px; right: 15px; font-size: 9px; text-transform: uppercase; color: #999; pointer-events: none; font-weight: 600; z-index: 20; }
+        #status-bar { position: absolute; bottom: 10px; right: 15px; font-size: 11px; text-transform: uppercase; color: #999; pointer-events: none; font-weight: 600; z-index: 20; }
         
         .extra-panel { margin-top: 8px; padding-top: 8px; border-top: 1px dotted #aaa; }
         
         /* --- DROP ZONE VETTORIALE A CENTRATURA NATURALE --- */
         #drop-zone {
             border: 1px dashed #000; padding: 22px 18px; text-align: center;
-            font-size: 10px; cursor: pointer; transition: background 0.1s;
+            font-size: 12px; cursor: pointer; transition: background 0.1s;
             text-transform: uppercase; font-weight: 600; letter-spacing: 1px;
             color: #000; background: #eeeeee; 
             width: 240px; 
@@ -456,7 +456,7 @@
         .vbar-btn {
             width: auto !important;
             padding: 5px 9px !important;
-            font-size: 9.5px !important;
+            font-size: 11.5px !important;
             font-weight: 700 !important;
             border: 1px solid #000 !important;
             background: #fff !important;
@@ -467,9 +467,9 @@
         .vbar-btn:hover { background: #000 !important; color: #fff !important; }
         .vbar-center { flex-grow: 1; display: flex; align-items: center; padding: 0 4px; }
         .vbar-right { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
-        .vbar-info { font-size: 9.5px; font-weight: 600; letter-spacing: 0.5px; white-space: nowrap; }
-        .vbar-loop-label { margin-bottom: 0 !important; font-size: 9px !important; padding-left: 18px !important; }
-        .vbar-select { width: auto !important; padding: 4px 6px !important; font-size: 9px !important; border: 1px solid #000 !important; font-family: inherit; }
+        .vbar-info { font-size: 11.5px; font-weight: 600; letter-spacing: 0.5px; white-space: nowrap; }
+        .vbar-loop-label { margin-bottom: 0 !important; font-size: 11px !important; padding-left: 18px !important; }
+        .vbar-select { width: auto !important; padding: 4px 6px !important; font-size: 11px !important; border: 1px solid #000 !important; font-family: inherit; }
 
         /* --- MODAL EXPORT WINDOW (CLEAN MINIMAL UI STYLE) --- */
         .modal-overlay {
@@ -500,7 +500,7 @@
             background: #000000;
             color: #ffffff;
             padding: 9px 14px;
-            font-size: 10px;
+            font-size: 12px;
             font-weight: 700;
             letter-spacing: 1.5px;
             display: flex;
@@ -512,7 +512,7 @@
             background: transparent !important;
             border: none !important;
             color: #ffffff !important;
-            font-size: 14px !important;
+            font-size: 16px !important;
             cursor: pointer;
             padding: 0 !important;
             width: auto !important;
@@ -538,7 +538,7 @@
             flex-direction: column;
         }
         .modal-label {
-            font-size: 9px;
+            font-size: 11px;
             font-weight: 400;
             text-transform: uppercase;
             margin-bottom: 4px;
@@ -549,7 +549,7 @@
             background: #fafafa;
             border: 1px dashed #aaa;
             padding: 9px 11px;
-            font-size: 9px;
+            font-size: 11px;
             line-height: 1.4;
             color: #000;
             box-sizing: border-box;
@@ -567,7 +567,7 @@
             color: #ffffff !important;
             border: 1px solid #000 !important;
             padding: 9px !important;
-            font-size: 9.5px !important;
+            font-size: 11.5px !important;
             font-weight: 700 !important;
             letter-spacing: 1px !important;
             cursor: pointer;
@@ -583,7 +583,7 @@
             color: #000000 !important;
             border: 1px solid #000 !important;
             padding: 9px !important;
-            font-size: 9.5px !important;
+            font-size: 11.5px !important;
             font-weight: 400 !important;
             letter-spacing: 1.5px !important;
             cursor: pointer;
@@ -604,11 +604,16 @@
             border-color: #000000 !important;
         }
 </style>
+    <link href="css/responsive.css" rel="stylesheet">
     <script src="vendor/jszip-3.10.1.min.js"></script>
 </head>
 <body>
 
 <div id="ui">
+    <div class="mobile-controls-header">
+        <div>MICELIUM <span>EDIT YOUR IMAGE · SCROLL FOR CONTROLS</span></div>
+        <button type="button" onclick="document.getElementById('fileInput').click()">LOAD FILE</button>
+    </div>
     <!-- Logo video - frozen, animates on slider interaction -->
     <div id="logo-header">
         <video id="logo" src="img/1_1.mp4" muted playsinline preload="auto" onclick="location.reload()" title="MYCELIUM - click to reload"></video>
@@ -623,9 +628,9 @@
         <div style="margin-top: 10px; margin-bottom: 4px;">
             <span class="label zoom-title">CANVAS ZOOM</span>
             <div class="zoom-row">
-                <span id="btnZoomOut" class="zoom-btn" title="Zoom Out">-</span>
+                <button type="button" id="btnZoomOut" class="zoom-btn" title="Zoom Out" aria-label="Zoom out">−</button>
                 <input type="range" id="zoomSlider" class="zoom-slider" min="0.05" max="8.0" step="0.05" value="1.08" style="flex-grow:1;">
-                <span id="btnZoomIn" class="zoom-btn" title="Zoom In">+</span>
+                <button type="button" id="btnZoomIn" class="zoom-btn" title="Zoom In" aria-label="Zoom in">+</button>
             </div>
         </div>
 
@@ -797,8 +802,9 @@
 <div id="workspace">
     <div id="viewport">
         <div id="drop-zone" onclick="document.getElementById('fileInput').click()">
-            <div style="font-size: 11px; font-weight: 700; margin-bottom: 6px;">DRAG_FILE_OR_CLICK</div>
-            <div style="font-size: 9px; opacity: 0.6; letter-spacing: 0.5px;">IMG / GIF / VIDEO (MAX 10MB)</div>
+            <div class="drop-desktop" style="font-size: 13px; font-weight: 700; margin-bottom: 6px;">DRAG_FILE_OR_CLICK</div>
+            <div class="drop-mobile">TAP TO LOAD A FILE</div>
+            <div style="font-size: 11px; opacity: 0.6; letter-spacing: 0.5px;">IMG / GIF / VIDEO (MAX 10MB)</div>
         </div>
         <div id="canvas-holder"></div>
         <div id="status-bar">Version 16.0 | OpenCV: Online | Scroll to Zoom</div>
@@ -810,7 +816,7 @@
             <button id="btnPlayPause" class="vbar-btn" title="Play/Pausa">PAUSE</button>
             <button id="btnPrevFrame" class="vbar-btn" title="Frame Precedente">◀ -1F</button>
             <button id="btnNextFrame" class="vbar-btn" title="Frame Successivo">+1F ▶</button>
-            <button id="btnRestart" class="vbar-btn" title="Riavvolgi">⏮</button>
+            <button id="btnRestart" class="vbar-btn" title="Riavvolgi">RESTART</button>
         </div>
 
         <div class="vbar-center">
@@ -846,7 +852,7 @@
 
             <!-- SECTION: Still image export (always visible) -->
             <div id="modalImageSection">
-                <div style="font-size:9.5px; font-weight:400; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:6px; color:#000;">STILL FRAME EXPORT</div>
+                <div style="font-size:11.5px; font-weight:400; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:6px; color:#000;">STILL FRAME EXPORT</div>
                 <div style="border-top:1px dotted #aaa; margin-bottom:10px;"></div>
                 
                 <div class="modal-field" style="margin-bottom:10px;">
@@ -860,17 +866,17 @@
                 </div>
                 
                 <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:8px;">
-                    <button id="expBlack" style="padding:9px 4px; font-size:9.5px; border:1px solid #000; background:#fff; color:#000; cursor:pointer; font-family:inherit; font-weight:400; letter-spacing:1px; text-transform:uppercase;">PNG BLK</button>
-                    <button id="expWhite" style="padding:9px 4px; font-size:9.5px; border:1px solid #000; background:#fff; color:#000; cursor:pointer; font-family:inherit; font-weight:400; letter-spacing:1px; text-transform:uppercase;">PNG WHT</button>
-                    <button id="expColor" style="padding:9px 4px; font-size:9.5px; border:1px solid #000; background:#fff; color:#000; cursor:pointer; font-family:inherit; font-weight:400; letter-spacing:1px; text-transform:uppercase;">PNG CLR</button>
+                    <button id="expBlack" style="padding:9px 4px; font-size:11.5px; border:1px solid #000; background:#fff; color:#000; cursor:pointer; font-family:inherit; font-weight:400; letter-spacing:1px; text-transform:uppercase;">PNG BLK</button>
+                    <button id="expWhite" style="padding:9px 4px; font-size:11.5px; border:1px solid #000; background:#fff; color:#000; cursor:pointer; font-family:inherit; font-weight:400; letter-spacing:1px; text-transform:uppercase;">PNG WHT</button>
+                    <button id="expColor" style="padding:9px 4px; font-size:11.5px; border:1px solid #000; background:#fff; color:#000; cursor:pointer; font-family:inherit; font-weight:400; letter-spacing:1px; text-transform:uppercase;">PNG CLR</button>
                 </div>
                 
-                <button id="expSvg" style="width:100%; padding:9px; border:1px solid #000; background:#fff; color:#000; cursor:pointer; font-family:inherit; font-size:9.5px; font-weight:400; letter-spacing:1px; text-transform:uppercase; margin-bottom:4px;">EXPORT SVG (VECTOR)</button>
+                <button id="expSvg" style="width:100%; padding:9px; border:1px solid #000; background:#fff; color:#000; cursor:pointer; font-family:inherit; font-size:11.5px; font-weight:400; letter-spacing:1px; text-transform:uppercase; margin-bottom:4px;">EXPORT SVG (VECTOR)</button>
             </div>
 
             <!-- SECTION: Video/animation export (visible only in video/GIF mode) -->
             <div id="modalVideoSection" style="display:none;">
-                <div style="font-size:9.5px; font-weight:400; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:6px; margin-top:8px; color:#000;">VIDEO &amp; ANIMATION EXPORT</div>
+                <div style="font-size:11.5px; font-weight:400; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:6px; margin-top:8px; color:#000;">VIDEO &amp; ANIMATION EXPORT</div>
                 <div style="border-top:1px dotted #aaa; margin-bottom:10px;"></div>
 
                 <div class="modal-field" style="margin-bottom:8px;">
@@ -920,14 +926,14 @@
                         <option value="custom">CUSTOM FRAME RANGE</option>
                     </select>
                     <div id="modalCustomRange" style="display:none; gap:8px; align-items:center; margin-top:4px;">
-                        <span style="font-size:9px;">FROM (SEC):</span>
-                        <input type="number" id="modalStartSec" value="0.0" min="0" step="0.1" style="width:65px; padding:3px 5px; font-size:9.5px; border:1px solid #000; font-family:inherit;">
-                        <span style="font-size:9px;">TO (SEC):</span>
-                        <input type="number" id="modalEndSec" value="5.0" min="0" step="0.1" style="width:65px; padding:3px 5px; font-size:9.5px; border:1px solid #000; font-family:inherit;">
+                        <span style="font-size:11px;">FROM (SEC):</span>
+                        <input type="number" id="modalStartSec" value="0.0" min="0" step="0.1" style="width:65px; padding:3px 5px; font-size:11.5px; border:1px solid #000; font-family:inherit;">
+                        <span style="font-size:11px;">TO (SEC):</span>
+                        <input type="number" id="modalEndSec" value="5.0" min="0" step="0.1" style="width:65px; padding:3px 5px; font-size:11.5px; border:1px solid #000; font-family:inherit;">
                     </div>
                 </div>
 
-                <button id="expVideoRec" style="width:100%; background:#fff; border:1px solid #000; padding:8px; font-family:inherit; font-size:9.5px; font-weight:400; cursor:pointer; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:4px;">RECORD VIEWPORT (REC)</button>
+                <button id="expVideoRec" style="width:100%; background:#fff; border:1px solid #000; padding:8px; font-family:inherit; font-size:11.5px; font-weight:400; cursor:pointer; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:4px;">RECORD VIEWPORT (REC)</button>
             </div>
 
             <div class="modal-info-box" id="modalInfoBox">
@@ -935,11 +941,11 @@
             </div>
 
             <div id="modalProgressCont" style="display:none; margin-top:6px;">
-                <div id="modalProgressText" style="font-size:9.5px; font-weight:700; color:#000; margin-bottom:4px;">PROCESSING: 0%</div>
+                <div id="modalProgressText" style="font-size:11.5px; font-weight:700; color:#000; margin-bottom:4px;">PROCESSING: 0%</div>
                 <div style="width:100%; height:6px; background:#eee; border:1px solid #000;">
                     <div id="modalProgressFill" style="width:0%; height:100%; background:#000;"></div>
                 </div>
-                <div id="modalProgressSub" style="font-size:8.5px; color:#555; margin-top:3px;">Frame 0 / 0</div>
+                <div id="modalProgressSub" style="font-size:10.5px; color:#555; margin-top:3px;">Frame 0 / 0</div>
             </div>
         </div>
 
@@ -1303,7 +1309,8 @@ function initViewportNavigation() {
         sidebarSliders.forEach(slider => {
             slider.addEventListener('wheel', (e) => {
                 if (Math.abs(e.deltaY) > 0) {
-                    uiContentEl.scrollTop += e.deltaY;
+                    const scrollArea = matchMedia('(max-width: 767px), (max-height: 500px) and (pointer: coarse)').matches ? document.getElementById('ui') : uiContentEl;
+                    scrollArea.scrollTop += e.deltaY;
                     e.preventDefault();
                 }
             }, { passive: false });
@@ -3236,7 +3243,7 @@ function finishExport(isSuccess = false) {
     if (cancelBtn) cancelBtn.innerText = "CLOSE";
 
     if (isSuccess) {
-        if (progressText) progressText.innerText = "EXPORT COMPLETED SUCCESSFULLY! ★";
+        if (progressText) progressText.innerText = "EXPORT COMPLETED SUCCESSFULLY!";
         document.getElementById('status-bar').innerText = "Video export terminato con successo!";
         setTimeout(() => {
             if (modal) modal.style.display = 'none';
@@ -3309,11 +3316,11 @@ function toggleViewportRecording() {
     viewportRecorder.start(100);
     let btn = document.getElementById('expVideoRec');
     if (btn) {
-        btn.innerText = "■ STOP RECORDING";
+        btn.innerText = "STOP RECORDING";
         btn.style.background = "#d00";
         btn.style.color = "#fff";
     }
-    document.getElementById('status-bar').innerText = "● Registrazione viewport live in corso...";
+    document.getElementById('status-bar').innerText = "REC · Registrazione viewport live in corso...";
 }
 
 // --- EXPORT SINGOLO FRAME (PNG / SVG) ---
@@ -3588,13 +3595,13 @@ function windowResized() {
                     item.classList.add('cselect-top-item');
                     item.innerHTML = `
                         <span class="cselect-item-text">${opt.text}</span>
-                        <span class="cselect-check">✓</span>
+                        <span class="cselect-check" aria-hidden="true"></span>
                         <div class="cselect-arrow cselect-close-trigger">${chevronSvg}</div>
                     `;
                 } else {
                     item.innerHTML = `
                         <span class="cselect-item-text">${opt.text}</span>
-                        <span class="cselect-check">✓</span>
+                        <span class="cselect-check" aria-hidden="true"></span>
                     `;
                 }
 

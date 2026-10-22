@@ -3,11 +3,12 @@
     const nav = document.createElement('nav');
     nav.id = 'editor-nav'; nav.setAttribute('data-editor-overlay', '');
     nav.setAttribute('aria-label', 'Main navigation');
-    nav.innerHTML = `<button id="menu-toggle" aria-expanded="false" aria-controls="editor-menu" aria-label="Open menu">MENU <span aria-hidden="true">＋</span></button>
+    nav.innerHTML = `<button id="menu-toggle" aria-expanded="false" aria-controls="editor-menu" aria-label="Open menu">MENU <span aria-hidden="true">+</span></button>
         <div id="editor-menu" hidden>
             <button id="menu-about">About</button>
-            <button id="menu-animate" aria-pressed="false">Animate</button>
-            <button id="menu-dark" role="switch" aria-checked="false">Viewport dark mode <span aria-hidden="true">○</span></button>
+            <button id="menu-animate" aria-pressed="false" aria-describedby="menu-mobile-note">Animation <span class="menu-badge">WORK IN PROGRESS</span></button>
+            <p id="menu-mobile-note">Animation is available on desktop only.</p>
+            <button id="menu-dark" role="switch" aria-checked="false">Viewport dark mode <span class="dark-indicator" aria-hidden="true"></span></button>
         </div>`;
     document.getElementById('workspace').append(nav);
     const about = document.createElement('dialog');
@@ -19,6 +20,9 @@
         <p class="editor-note">MYCLM · VERSION 16.0</p></form>`;
     document.body.append(about);
     const toggle = nav.querySelector('#menu-toggle'), menu = nav.querySelector('#editor-menu');
+    const phoneLayout = matchMedia('(max-width: 767px), (max-height: 500px) and (pointer: coarse)');
+    function updateAvailability() { nav.querySelector('#menu-animate').disabled = phoneLayout.matches; }
+    updateAvailability(); phoneLayout.addEventListener('change', updateAvailability);
     function close(focus = false) {
         menu.hidden = true; toggle.setAttribute('aria-expanded', 'false');
         if (focus) toggle.focus();
@@ -32,7 +36,7 @@
     document.addEventListener('keydown', event => {
         if (menu.hidden) return;
         if (event.key === 'Escape') { close(true); event.stopPropagation(); return; }
-        const buttons = [...menu.querySelectorAll('button')];
+        const buttons = [...menu.querySelectorAll('button:not(:disabled)')];
         if (['ArrowDown', 'ArrowUp'].includes(event.key) && !menu.hidden) {
             event.preventDefault();
             buttons[(buttons.indexOf(document.activeElement) + (event.key === 'ArrowDown' ? 1 : -1) + buttons.length) % buttons.length].focus();
@@ -54,7 +58,7 @@
         enabled = value;
         document.getElementById('viewport').classList.toggle('viewport-dark', enabled);
         dark.setAttribute('aria-checked', String(enabled));
-        dark.querySelector('span').textContent = enabled ? '●' : '○';
+        dark.querySelector('span').classList.toggle('is-on', enabled);
         try { localStorage.setItem('micelium.viewportDark', String(enabled)); } catch (_) { /* optional preference */ }
         window.MiceliumEditor.render();
     }
