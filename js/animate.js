@@ -17,16 +17,16 @@
         <button id="animate-close" aria-label="Close Animate">×</button></div></header>
         <details id="animate-help"><summary>HOW TO ANIMATE · ADD &amp; OVERWRITE KEYFRAMES</summary>
             <ol><li><strong>Start.</strong> Load a still image. Keyframe 01 is saved at 0 s. Adjust the sidebar parameters, then click <strong>Overwrite keyframe 01</strong> to save your starting look.</li>
-            <li><strong>Add.</strong> Click an empty time on the timeline or use SEEK. Choose a style and adjust its parameters, then click <strong>Add keyframe</strong>. Use <strong>End key</strong> for the final look. Different styles dissolve between their saved looks.</li>
-            <li><strong>Edit &amp; save.</strong> Click a numbered key to load it. Move any sidebar parameter, then click <strong>Overwrite keyframe</strong>. Your new values replace that key; other keys stay unchanged. Changes are a draft until saved.</li></ol>
-            <p>Drag numbered keys to move them in time; use Left/Right for fine adjustments (Shift for larger steps). Each key stores its own style. To add a key during a dissolve, change a sidebar control first to define its new look. Click the strip below two keys to edit their transition. Save changes before seeking or exporting. Keys are kept only until this page is reloaded.</p>
+            <li><strong>Add.</strong> Drag the top triangle to choose a time, or use SEEK. Choose a style and adjust its parameters, then click <strong>Add keyframe</strong>. Use <strong>End key</strong> for the final look. Different styles break apart and rebuild through dithering.</li>
+            <li><strong>Edit &amp; save.</strong> Click a diamond keyframe or a key in the list to load it. Move any sidebar parameter, then click <strong>Overwrite keyframe</strong>. Your new values replace that key; other keys stay unchanged. Changes are a draft until saved.</li></ol>
+            <p><strong>Triangle = time. Diamond = saved keyframe.</strong> Drag a diamond in the middle lane to move its saved time; dragging the top triangle only previews the animation. Use Left/Right on either control for fine adjustments (Shift for larger steps). Each key stores its own style. To add a key during a style transition, change a sidebar control first to define its new look. Click the strip below two keys to edit their transition. Save changes before seeking or exporting. Keys are kept only until this page is reloaded.</p>
         </details>
         <div class="animate-body"><div class="animate-sequence">
         <div class="animate-transport"><button id="animate-play">PLAY</button><button id="animate-pause" disabled>PAUSE</button><button id="animate-restart" title="Play from the beginning">RESTART</button><button id="animate-stop" title="Pause and return to zero">STOP</button><button id="animate-prev" aria-label="Previous keyframe">‹ KEY</button><button id="animate-next" aria-label="Next keyframe">KEY ›</button>
             <output id="animate-time" aria-label="Current animation time">00:00.00 / 00:15.00</output>
             <label class="animate-loop-label"><input id="animate-loop" type="checkbox"> LOOP</label><span id="animate-frame-size" class="editor-note"></span><span id="animate-performance" class="editor-note"></span></div>
         <div id="animate-track" aria-label="Keyframe timeline"><div class="animate-ruler" aria-hidden="true"><span>0</span><span>5</span><span>10</span><span id="animate-end-label">15 S</span></div>
-            <div id="animate-segments"></div><div id="animate-markers"></div><div id="animate-playhead" aria-hidden="true"></div></div>
+            <div id="animate-segments"></div><div id="animate-markers"></div><div id="animate-playhead"><button id="animate-playhead-handle" type="button" role="slider" aria-label="Playhead: preview animation time" aria-valuemin="0" aria-valuemax="15" aria-valuenow="0" title="Drag the triangle to preview time. Diamonds move saved keyframes."></button></div></div>
         <input id="animate-scrub" type="range" min="0" max="15" value="0" step="0.001" aria-label="Scrub animation time">
         <div id="animate-key-list" role="group" aria-label="Saved keyframes"></div>
         <p id="animate-key-status" role="status" aria-live="polite"></p>
@@ -38,7 +38,7 @@
         <select id="animate-ease" disabled><option value="linear">Linear</option><option value="ease-in">Ease In</option><option value="ease-out">Ease Out</option><option value="ease-in-out">Ease In-Out</option><option value="custom">Custom Bezier</option></select>
         <svg id="animate-curve" viewBox="0 0 120 100" preserveAspectRatio="none" aria-label="Easing curve preview"><path class="curve-grid" d="M10 10V90H110 M10 50H110 M60 10V90"/><path id="curve-links"/><path id="curve-path"/><circle id="curve-handle-1" r="4"/><circle id="curve-handle-2" r="4"/></svg>
         <div id="animate-bezier" hidden>${['x1', 'y1', 'x2', 'y2'].map((name, i) => `<label>${name.toUpperCase()}<input type="number" id="bezier-${name}" min="0" max="1" step="0.01" value="${[0.42, 0, 0.58, 1][i]}" aria-label="Bezier ${name}"></label>`).join('')}</div>
-        <p class="editor-note">Select a strip to edit its curve. Different styles dissolve smoothly; each keeps its own saved parameters.</p>
+        <p class="editor-note">Select a strip to edit its curve. Dithering breaks apart one style and rebuilds the next; each keeps its saved parameters.</p>
         </div></div>`;
     document.getElementById('workspace').append(panel);
     const content = document.createElement('div'); content.className = 'animate-content';
@@ -65,7 +65,7 @@
         const ready = editor.ready(), dirty = ready && !playing && key && JSON.stringify(editor.capture()) !== JSON.stringify(key.values);
         const status = !ready ? 'Load a still image to create your first keyframe.' : playing ? 'Playing saved keys · Pause to edit a keyframe.' : key
             ? `KEYFRAME ${number} · ${styleLabel(key.values.styleSelect)} · ${key.time.toFixed(2)} S · ${dirty ? 'UNSAVED CHANGES — click Overwrite to save.' : 'SAVED — change style or parameters, then Overwrite.'}`
-            : blending ? `${styleLabel(sampledScene.from.styleSelect)} → ${styleLabel(sampledScene.to.styleSelect)} · DISSOLVE ${Math.round(sampledScene.mix * 100)}% · Select a key to edit, or change a sidebar control to create a new look here.`
+            : blending ? `${styleLabel(sampledScene.from.styleSelect)} → ${styleLabel(sampledScene.to.styleSelect)} · DITHER ${Math.round(sampledScene.mix * 100)}% · Select a key to edit, or change a sidebar control to create a new look here.`
             : `NO KEY AT ${time.toFixed(2)} S · Choose a style and parameters, then Add keyframe.`;
         if ($('animate-key-status').textContent !== status) $('animate-key-status').textContent = status;
         $('animate-key-status').classList.toggle('has-draft', !!dirty);
@@ -116,6 +116,9 @@
         if (document.activeElement !== $('animate-seek-time')) $('animate-seek-time').value = time.toFixed(2);
         if (!playing) $('animate-play').textContent = time > 0 && time < duration ? 'RESUME' : 'PLAY';
         $('animate-playhead').style.left = `${time / duration * 100}%`;
+        $('animate-playhead-handle').setAttribute('aria-valuemax', String(duration));
+        $('animate-playhead-handle').setAttribute('aria-valuenow', String(+time.toFixed(3)));
+        $('animate-playhead-handle').setAttribute('aria-valuetext', `${time.toFixed(2)} seconds. Drag to preview; saved keyframes stay in place.`);
         $('animate-time').textContent = `${format(time)} / ${format(duration)}`;
         scrub.setAttribute('aria-valuetext', `${time.toFixed(2)} seconds`);
         renderKeyState();
@@ -128,7 +131,7 @@
             button.setAttribute('aria-pressed', String(key.id === segmentId));
             const next = frames[frames.indexOf(key) + 1];
             const curve = Array.isArray(key.easing) ? 'BEZIER' : key.easing.toUpperCase();
-            button.querySelector('span').textContent = key.values.styleSelect === next.values.styleSelect ? `PARAMETERS · ${curve}` : `${styleLabel(key.values.styleSelect)} → ${String(next.values.styleSelect).padStart(2, '0')} · DISSOLVE`;
+            button.querySelector('span').textContent = key.values.styleSelect === next.values.styleSelect ? `PARAMETERS · ${curve}` : `${styleLabel(key.values.styleSelect)} → ${String(next.values.styleSelect).padStart(2, '0')} · DITHER`;
             button.querySelector('path').setAttribute('d', Array.from({ length: 41 }, (_, i) => `${i ? 'L' : 'M'}${i / 40 * 100},${30 - ease(i / 40, key.easing) * 26}`).join(' '));
         });
         const custom = Array.isArray(frame?.easing);
@@ -159,7 +162,7 @@
             button.type = 'button'; button.className = 'animate-key';
             button.dataset.id = frame.id;
             button.style.left = `${frame.time / duration * 100}%`;
-            button.setAttribute('aria-label', `Keyframe ${index + 1} at ${frame.time.toFixed(2)} seconds`);
+            button.setAttribute('aria-label', `Keyframe ${index + 1}, ${styleLabel(frame.values.styleSelect)}, at ${frame.time.toFixed(2)} seconds. Drag diamond to move keyframe.`);
             button.setAttribute('aria-pressed', String(frame.id === selected));
             button.title = `Keyframe ${index + 1} · ${frame.time.toFixed(2)} s · click to edit, drag to move`;
             button.innerHTML = `<span class="key-number">${String(index + 1).padStart(2, '0')}</span><span class="key-style">S${String(frame.values.styleSelect).padStart(2, '0')}</span>`;
@@ -338,6 +341,12 @@
         const key = event.target.closest('.animate-key'); if (key && event.detail === 0) jumpKey(frames.find(frame => frame.id === key.dataset.id));
     });
     track.addEventListener('keydown', event => {
+        if (event.target.id === 'animate-playhead-handle') {
+            if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+            event.preventDefault(); pause(); selected = null;
+            seek(event.key === 'Home' ? 0 : event.key === 'End' ? duration : time + (event.key === 'ArrowRight' ? 1 : -1) * (event.shiftKey ? .5 : .05));
+            renderKeys(); return;
+        }
         const key = event.target.closest('.animate-key'); if (!key) return;
         if (['ArrowLeft', 'ArrowRight', 'Delete', 'Backspace'].includes(event.key)) {
             event.preventDefault(); selected = key.dataset.id; pause(false);

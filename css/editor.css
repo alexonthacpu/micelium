@@ -173,13 +173,20 @@
 #animate-panel { scrollbar-gutter: stable; }
 #animate-panel .animate-key-actions { gap: 6px; margin: 6px 0 10px; }
 #animate-panel #animate-track { height: 116px; }
-#animate-markers .animate-key { top: 26px; min-width: 52px; height: 35px; display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 4px; border: 1px solid #000; }
-.animate-key .key-number { font-size: 14px; }
-.animate-key .key-style { font-size: 10px; border-left: 1px solid currentColor; padding-left: 4px; }
-#animate-markers .animate-key::after { content: ''; position: absolute; top: 100%; left: 50%; width: 1px; height: 11px; background: #888; }
-#animate-segments .animate-segment { top: 73px; height: 31px; }
+/* Separate lanes: the top triangle scrubs time, floating diamonds move keys. */
+#animate-markers .animate-key { top: 37px; min-width: 28px; width: 28px; height: 28px; display: block; padding: 0; border: 0; background: transparent; color: #000; z-index: 3; }
+#animate-markers .animate-key::before { width: 16px; height: 16px; top: 6px; left: 6px; border: 1px solid #000; background: #fff; transform: rotate(45deg); }
+#animate-markers .animate-key::after { display: none; }
+#animate-markers .animate-key:hover, #animate-markers .animate-key[aria-pressed="true"] { background: transparent; color: #000; }
+#animate-markers .animate-key:hover::before, #animate-markers .animate-key[aria-pressed="true"]::before { background: #000; }
+.animate-key .key-number { position: absolute; top: 29px; left: 0; width: 100%; font-size: 12px; line-height: 14px; text-align: center; background: #fff; }
+.animate-key .key-style { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+#animate-segments .animate-segment { top: 84px; height: 27px; }
 #animate-playhead { border-left: 1px dashed #000; background: transparent; width: 0; }
-#animate-playhead::before { width: 0; height: 0; left: -4px; background: transparent; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 6px solid #000; }
+#animate-playhead::before { display: none; }
+#animate-panel #animate-playhead-handle { position: absolute; top: -6px; left: -12px; width: 24px; height: 20px; padding: 0; border: 0; background: transparent; color: #000; pointer-events: auto; touch-action: none; cursor: ew-resize; }
+#animate-playhead-handle::before { content: ''; position: absolute; top: 4px; left: 7px; width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 7px solid #000; }
+#animate-panel #animate-playhead-handle:hover::before { border-top-width: 9px; }
 #animate-key-status.has-draft { border-left-style: dashed; }
 .animate-segment span { max-width: calc(100% - 10px); overflow: hidden; text-overflow: ellipsis; }
 

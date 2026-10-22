@@ -37,7 +37,7 @@ test('sidebar parameters retain their own style meanings between different-style
     assert.equal(sample(frames, 4.99).p1, 230);
     assert.equal(sample(frames, 5).styleSelect, '2');
 });
-test('different styles dissolve with outgoing easing and shared continuous zoom', () => {
+test('different styles dither with outgoing easing and shared continuous zoom', () => {
     const frames = [frame('a', 0, 230, { easing: 'ease-in', values: { styleSelect: '1', p1: 230, zoomSlider: 1 } }),
         frame('b', 4, 2, { values: { styleSelect: '4', p1: 2, zoomSlider: 2 } })];
     const saved = JSON.stringify(frames), scene = sampleScene(frames, 2);
