@@ -23,6 +23,22 @@ const { chromium } = require('playwright');
     const settle = page => page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
     const state = page => page.evaluate(() => MiceliumAnimate.snapshot());
     const fonts = page => page.evaluate(() => document.fonts.check('12px WTGaramono') && [...document.querySelectorAll('body, body *')].every(el => getComputedStyle(el).fontFamily === 'WTGaramono'));
+    async function monochrome(page) {
+        const colored = await page.evaluate(() => {
+            const result = [];
+            for (const el of document.querySelectorAll('body, body *')) for (const pseudo of [null, '::before', '::after']) {
+                const style = getComputedStyle(el, pseudo);
+                for (const property of ['color', 'backgroundColor', 'borderTopColor', 'outlineColor', 'accentColor', 'fill', 'stroke']) {
+                    const rgb = style[property]?.match(/^rgba?\(([^)]+)\)/);
+                    if (!rgb) continue;
+                    const values = rgb[1].split(/[,\s/]+/).filter(Boolean).map(Number);
+                    if (values.length >= 3 && (values[0] !== values[1] || values[1] !== values[2])) result.push(`${el.id || el.tagName} ${pseudo || ''} ${property}: ${style[property]}`);
+                }
+            }
+            return result;
+        });
+        assert.deepEqual(colored, [], 'application controls, focus rings and pseudo-elements stay monochrome');
+    }
     async function renderedFonts(page) {
         const client = await page.context().newCDPSession(page);
         await client.send('DOM.enable'); await client.send('CSS.enable');
@@ -97,6 +113,9 @@ const { chromium } = require('playwright');
             assert.equal((await state(mobile)).active, false);
             await mobile.locator('#menu-about').tap();
             assert.equal(await mobile.locator('#about-dialog').evaluate(el => el.open), true);
+            await mobile.locator('#about-content').evaluate(el => { el.scrollTop = el.scrollHeight; });
+            assert.ok(await mobile.locator('#about-content').evaluate(el => el.scrollTop > 0 && el.scrollWidth <= el.clientWidth));
+            await monochrome(mobile);
             await mobile.locator('#about-dialog button').tap();
         }
         console.log('PASS: narrow/landscape phones have no horizontal overflow; Animation is unavailable; menu stays usable');
@@ -155,6 +174,7 @@ const { chromium } = require('playwright');
         await desktop.locator('.animate-key-shortcut').first().click();
         await set(desktop, '#p1', 50);
         assert.match(await desktop.locator('#animate-key-status').textContent(), /UNSAVED CHANGES/);
+        await monochrome(desktop);
         assert.match(await desktop.locator('#animate-add').textContent(), /OVERWRITE KEYFRAME 01/);
         assert.deepEqual((await state(desktop)).frames, before, 'edits remain a draft until explicitly saved');
         await desktop.click('#animate-add');
@@ -163,7 +183,7 @@ const { chromium } = require('playwright');
         assert.deepEqual(after[1], before[1], 'overwriting the first key preserves the other key');
         assert.match(await desktop.locator('#animate-key-status').textContent(), /SAVED/);
         assert.match(await desktop.locator('#animate-message').textContent(), /Keyframe 1 overwritten/);
-        assert.equal(await desktop.locator('.animate-key[aria-pressed="true"]').textContent(), '01');
+        assert.equal(await desktop.locator('.animate-key[aria-pressed="true"] .key-number').textContent(), '01');
         await set(desktop, '#animate-seek-time', 2.5);
         assert.equal(Number(await desktop.locator('#p1').inputValue()), 115, 'new key values drive interpolation');
         assert.match(await desktop.locator('#animate-add').textContent(), /ADD KEYFRAME/);
@@ -174,16 +194,18 @@ const { chromium } = require('playwright');
         const handle = await grip.boundingBox();
         await desktop.mouse.move(handle.x + handle.width / 2, handle.y + handle.height / 2);
         await desktop.mouse.down(); await desktop.mouse.move(handle.x + handle.width / 2, handle.y + handle.height / 2 - 140, { steps: 8 }); await desktop.mouse.up(); await settle(desktop);
-        assert.ok(Math.abs((await panel.boundingBox()).height - initialHeight - 140) < 2);
-        assert.ok(Math.abs((await desktop.locator('#viewport').boundingBox()).height - initialView + 140) < 2);
+        const cappedHeight = Math.min(initialHeight + 140, Number(await grip.getAttribute('aria-valuemax')));
+        assert.ok(Math.abs((await panel.boundingBox()).height - cappedHeight) < 2);
+        assert.ok(Math.abs((await desktop.locator('#viewport').boundingBox()).height - initialView + cappedHeight - initialHeight) < 2);
         assert.deepEqual(await state(desktop), originalState);
         assert.equal(await desktop.evaluate(() => MiceliumAnimate.frameCanvas().toDataURL()), originalPixels);
         await grip.focus(); await desktop.keyboard.press('ArrowDown'); await settle(desktop);
         const chosenHeight = (await panel.boundingBox()).height;
-        assert.ok(Math.abs(chosenHeight - initialHeight - 124) < 2);
+        assert.ok(Math.abs(chosenHeight - Math.max(Number(await grip.getAttribute('aria-valuemin')), cappedHeight - 16)) < 2);
         await desktop.click('#animate-close'); await desktop.evaluate(() => MiceliumAnimate.toggle(true)); await settle(desktop);
         assert.equal((await panel.boundingBox()).height, chosenHeight);
         await grip.focus(); await desktop.keyboard.press('End'); await settle(desktop);
+        assert.ok(await panel.evaluate(el => el.clientHeight <= el.querySelector('.animate-content').getBoundingClientRect().height + 18), 'dock expansion stops at its content height');
         assert.ok((await desktop.locator('#viewport').boundingBox()).height >= 159);
         await desktop.setViewportSize({ width: 1440, height: 650 }); await settle(desktop);
         assert.ok((await desktop.locator('#viewport').boundingBox()).height >= 159);
@@ -197,6 +219,14 @@ const { chromium } = require('playwright');
         assert.equal((await state(desktop)).active, false);
         await desktop.setViewportSize({ width: 1440, height: 1000 }); await desktop.evaluate(() => MiceliumAnimate.toggle(true));
         assert.deepEqual((await state(desktop)).frames, keys);
+        await desktop.click('#menu-toggle'); await desktop.click('#menu-about');
+        assert.ok((await desktop.locator('#about-dialog').boundingBox()).width >= 800);
+        await desktop.locator('#about-content').hover(); await desktop.mouse.wheel(0, 650);
+        await desktop.waitForFunction(() => document.getElementById('about-content').scrollTop > 0);
+        assert.match(await desktop.locator('#about-content').textContent(), /Canny|Floyd–Steinberg|random seed/);
+        assert.equal(await fonts(desktop), true); await monochrome(desktop);
+        await desktop.locator('#about-dialog button').click();
+        console.log('PASS: large scrollable About on desktop/phone and monochrome controls, focus and draft states');
         console.log('PASS: desktop typography, WIP label, help, numbered keys, explicit overwrite, interpolation and resize preservation');
         assert.deepEqual(errors, []); assert.deepEqual(external, []);
         console.log('PASS: no browser errors or external requests');

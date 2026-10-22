@@ -122,15 +122,15 @@
 #animate-markers .animate-key[aria-pressed="true"], #animate-key-list button[aria-pressed="true"] { background: #000; color: #fff; }
 #animate-markers .animate-key[aria-pressed="true"]::before { background: #000; }
 #animate-segments .animate-segment { top: 68px; height: 43px; }
-#animate-playhead { background: #b33c1e; }
-#animate-playhead::before { background: #b33c1e; }
+#animate-playhead { background: #000; }
+#animate-playhead::before { background: #000; }
 #animate-panel #animate-scrub { width: calc(100% - 40px); margin-left: 20px; margin-right: 20px; }
 #animate-key-list { display: flex; gap: 5px; overflow-x: auto; padding: 4px 0; }
 #animate-key-list button { flex-shrink: 0; padding: 5px 8px; font-size: 11px; }
 #animate-key-status { padding: 9px 10px; margin: 8px 0; border-left: 3px solid #000; background: #f3f3f3; line-height: 1.5; }
-#animate-key-status.has-draft { border-color: #b33c1e; background: #fff3eb; }
+#animate-key-status.has-draft { border-color: #000; background: #eaeaea; }
 #animate-panel #animate-add { background: #000; color: #fff; min-height: 36px; }
-#animate-panel #animate-add.has-draft { outline: 2px solid #b33c1e; outline-offset: 2px; }
+#animate-panel #animate-add.has-draft { outline: 2px solid #000; outline-offset: 2px; }
 #animate-panel #animate-add:disabled { background: #eee; color: #666; }
 #animate-panel input[type="number"] { width: 67px; }
 @media (max-width: 1050px) {
@@ -168,3 +168,32 @@
     #animate-panel .animate-header { grid-template-columns: 1fr; }
     .animate-header-actions { justify-content: flex-end; }
 }
+
+.animate-content { display: flow-root; }
+#animate-panel { scrollbar-gutter: stable; }
+#animate-panel .animate-key-actions { gap: 6px; margin: 6px 0 10px; }
+#animate-panel #animate-track { height: 116px; }
+#animate-markers .animate-key { top: 26px; min-width: 52px; height: 35px; display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 4px; border: 1px solid #000; }
+.animate-key .key-number { font-size: 14px; }
+.animate-key .key-style { font-size: 10px; border-left: 1px solid currentColor; padding-left: 4px; }
+#animate-markers .animate-key::after { content: ''; position: absolute; top: 100%; left: 50%; width: 1px; height: 11px; background: #888; }
+#animate-segments .animate-segment { top: 73px; height: 31px; }
+#animate-playhead { border-left: 1px dashed #000; background: transparent; width: 0; }
+#animate-playhead::before { width: 0; height: 0; left: -4px; background: transparent; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 6px solid #000; }
+#animate-key-status.has-draft { border-left-style: dashed; }
+.animate-segment span { max-width: calc(100% - 10px); overflow: hidden; text-overflow: ellipsis; }
+
+#about-dialog { width: min(860px, calc(100vw - 40px)); height: min(84dvh, 820px); max-height: calc(100dvh - 32px); padding: 0; overflow: hidden; font-size: 14px; }
+#about-dialog form { height: 100%; display: flex; flex-direction: column; min-height: 0; margin: 0; }
+#about-dialog header { flex-shrink: 0; padding: 18px 24px; border-bottom: 1px solid #000; }
+#about-dialog h2 { font-size: 22px; margin: 7px 0 0; }
+#about-dialog header button { min-width: 38px; min-height: 38px; }
+#about-content { overflow-y: auto; min-height: 0; padding: 4px 28px 24px; overscroll-behavior: contain; line-height: 1.8; }
+#about-content:focus-visible { outline-offset: -3px; }
+#about-dialog .about-intro { font-size: 17px; line-height: 1.7; }
+#about-content section { padding: 16px 0; border-bottom: 1px dotted #aaa; }
+#about-content h3 { font-size: 14px; font-style: italic; font-weight: 400; letter-spacing: 1px; margin: 0 0 14px; }
+#about-content h4 { font-size: 15px; font-weight: 400; margin: 16px 0 0; }
+#about-content p { margin: 9px 0 16px; }
+.about-styles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 28px; }
+#about-dialog .about-footer { margin-top: 24px; }

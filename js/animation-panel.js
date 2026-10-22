@@ -4,6 +4,7 @@
     window.MiceliumAnimationPanel = class {
         constructor(panel) {
             this.panel = panel; this.workspace = panel.parentElement;
+            this.content = panel.querySelector('.animate-content');
             this.preferred = null; this.drag = null; this.raf = 0; this.pending = null;
             const handle = this.handle = document.createElement('div');
             handle.id = 'animate-resize'; handle.hidden = true; handle.tabIndex = 0;
@@ -40,11 +41,14 @@
                 else this.resize(event.key === 'Home' ? min : event.key === 'End' ? max :
                     panel.getBoundingClientRect().height + (event.key === 'ArrowUp' ? step : -step));
             });
-            new ResizeObserver(() => { if (!panel.hidden) this.sync(); }).observe(this.workspace);
+            const observer = new ResizeObserver(() => { if (!panel.hidden) this.sync(); });
+            observer.observe(this.workspace); observer.observe(this.content);
         }
         bounds() {
             const player = document.getElementById('videoBottomBar');
-            const max = Math.max(80, this.workspace.clientHeight - 160 - this.handle.offsetHeight - player.offsetHeight);
+            const style = getComputedStyle(this.panel);
+            const contentHeight = this.content.getBoundingClientRect().height + parseFloat(style.paddingTop) + parseFloat(style.paddingBottom) + 2;
+            const max = Math.max(80, Math.floor(Math.min(contentHeight, this.workspace.clientHeight - 160 - this.handle.offsetHeight - player.offsetHeight)));
             return { min: Math.min(180, max), max };
         }
         sync() {

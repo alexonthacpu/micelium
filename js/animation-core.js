@@ -51,5 +51,18 @@
         if (index < 0) next.push(frame); else next[index] = { ...frame, id: next[index].id };
         return next.sort((a, b) => a.time - b.time);
     }
-    return { clamp, presets, ease, sample, upsert };
+    function sampleScene(frames, time) {
+        const state = sample(frames, time);
+        if (!state) return null;
+        for (let i = 1; i < frames.length; i++) {
+            const left = frames[i - 1], right = frames[i];
+            if (time > left.time && time < right.time && left.values.styleSelect !== right.values.styleSelect) {
+                const mix = ease((time - left.time) / (right.time - left.time), left.easing);
+                const zoom = (left.values.zoomSlider ?? 1) + ((right.values.zoomSlider ?? 1) - (left.values.zoomSlider ?? 1)) * mix;
+                return { from: { ...left.values, zoomSlider: zoom }, to: { ...right.values, zoomSlider: zoom }, mix };
+            }
+        }
+        return { from: state, to: null, mix: 0 };
+    }
+    return { clamp, presets, ease, sample, sampleScene, upsert };
 });

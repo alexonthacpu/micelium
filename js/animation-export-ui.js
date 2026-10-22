@@ -44,11 +44,11 @@
         $('settings').disabled = true; $('start').disabled = true; $('cancel').textContent = 'CANCEL EXPORT';
         try {
             const config = saved.settings, keys = saved.keyframes, fps = Number($('fps').value);
-            const canvas = renderer.render(window.MiceliumTimeline.sample(keys, 0), config).canvas;
+            const canvas = renderer.renderScene(window.MiceliumTimeline.sampleScene(keys, 0), config).canvas;
             await window.MiceliumAnimationExport.run({
                 duration: saved.duration, fps, signal: controller.signal, type: types.find(type => type.ext === $('format').value),
-                metadata: { width: canvas.width, height: canvas.height, dark: config.dark, cameraBase: config.cameraBase, detail: config.detail, keyframes: keys },
-                render: time => renderer.render(window.MiceliumTimeline.sample(keys, time), config).canvas,
+                metadata: { width: canvas.width, height: canvas.height, dark: config.dark, cameraBase: config.cameraBase, detail: config.detail, styleTransitions: 'cross-dissolve', keyframes: keys },
+                render: time => renderer.renderScene(window.MiceliumTimeline.sampleScene(keys, time), config).canvas,
                 progress: (value, text) => { $('progress').value = value; $('status').textContent = text; }
             });
             $('progress').value = 1; $('status').textContent = 'Export complete. Download ready.';

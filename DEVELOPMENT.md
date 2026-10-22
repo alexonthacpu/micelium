@@ -75,7 +75,15 @@ Click a transition strip between keys to select its easing without moving the
 playhead. Strips show their own curves; the editor identifies the interval.
 Linear, Ease In/Out, Ease In-Out and custom Bezier are available. Drag handles
 or edit coordinates; changes update the current frame live, coalesced by RAF.
-Numeric parameters and zoom interpolate; styles/switches change at keys.
+Numeric parameters and zoom interpolate within a style; switches change at keys.
+Keys with different styles use a whole-scene cross-dissolve controlled by the
+outgoing easing curve. Each endpoint keeps its own style parameters, so values
+with different meanings are never blended together. Key markers and the key
+list identify both key number and style; transition strips distinguish
+parameter animation from a style dissolve. Sidebar edits preview a draft look;
+save it as a key before seeking or exporting. A mixed preview cannot be saved
+as if it were a single style: change a sidebar control to define the new look
+before adding a key inside a dissolve.
 Before the first key and after the last, values hold.
 
 **Pause** freezes the displayed frame without changing quality. **Resume**
@@ -93,10 +101,12 @@ all controls and instructions available. Its settings and action buttons are
 grouped separately, with a shorter timeline track and tighter spacing.
 
 The divider is keyboard focusable: Up/Down changes height by 16 px (48 px with
-Shift), Home minimizes it, End expands it while retaining a 160 px viewport,
+Shift), Home minimizes it, End expands it up to the actual content height while retaining a 160 px viewport,
 and Enter or a double-click restores the compact default. The chosen height
 survives closing/reopening Animation during this page session, and adapts to
-window resizing. Dock resizing only changes display fitting; keyframes,
+window resizing. Opening/closing the instructions or changing the content also
+updates the maximum height: the dock cannot grow into unused blank space.
+Dock resizing only changes display fitting; keyframes,
 playhead time, composition settings and exported pixels are unchanged.
 
 ### Matching preview and output
@@ -127,12 +137,22 @@ reuses geometry: style/OpenCV calculations are needed only when source/style
 parameters change. Input bursts are coalesced with RAF instead of a 75 ms slider
 throttle; parameter edits no longer invalidate unchanged source pixels. Paths
 retain their original draw order, fill and stroke settings (no merging or
-simplification). Only the current scene is kept per viewport; animation geometry
+simplification). Only the current scene, or the current pair during a style
+dissolve, is kept per viewport; animation geometry
 is reused for zoom-only keyframes. Playback draws the scene directly to the
 viewport; the export-size bitmap is rasterized only when requested. Capturing
 geometry does not also draw an unused intermediate frame. Original style equations and PNG/SVG formats
 are retained. Still exports seed randomness explicitly so cached viewport draws
 cannot change export output.
+
+For a style dissolve, both endpoints are retained as vectors and isolated in
+reusable canvases at the current target's actual pixel density, then composited
+with the easing weight. Applying opacity per path would
+incorrectly darken overlapping marks. The same composition renderer handles
+preview and export, including dark palette and continuous keyed zoom. Blend-only
+frames reuse both native-density layers without geometry generation or path
+replay. A camera/zoom, source or style change rebuilds the affected layers;
+processing detail is never reduced.
 
 ### Animation export
 
@@ -169,10 +189,11 @@ node tests/navigation.cjs
 node tests/animation-workflow.cjs
 node tests/viewport-navigation.cjs
 node tests/responsive.cjs
+node tests/style-transitions.cjs
 ```
 
 Set `BROWSER=webkit` to run the existing browser suites in Playwright WebKit;
-the touch/font suite `responsive.cjs` uses Chromium. Workflow tests
+the touch/font suite `responsive.cjs` and style-transition suite use Chromium. Workflow tests
 exercise all six composition styles, 1–30 seconds and retiming, live transition
 editing, pause/resume/restart/stop/loop, real PNG ZIP frame counts/metadata,
 byte-identical preview/export samples, video recording/decoding when supported,
@@ -212,6 +233,20 @@ the basic video player and desktop-only Animation. It also verifies actual
 Garamono glyph rendering, explicit keyframe overwrite without changing other
 keys, interpolation after saving, and timeline preservation across layout changes.
 Physical phones and native Safari still require a manual check.
+
+All application chrome uses black, white and neutral gray, including native
+control accents, selection/focus, draft indicators, recording state and the
+playhead. Existing artwork palette options are independent of the interface.
+About is a larger dialog with a fixed header and an internally scrolling body,
+including the six algorithm descriptions, local processing, deterministic
+randomness, halftone perception and animation/export details. It uses the same
+local Garamono typography on desktop and phone.
+
+`tests/style-transitions.cjs` checks all 30 ordered pairs of distinct styles,
+exact endpoints, weighted whole-frame intermediate pixels, geometry reuse,
+native 2× vector replay and an actual three-style PNG ZIP. It verifies preview
+parity, dark palette, easing, saved style metadata and editor restoration.
+Animation JSON includes `styleTransitions: "cross-dissolve"`.
 
 After the logo's first click switches it from video to the static character,
 hovering the character replaces the pointer with a Garamono “refresh page” label.
