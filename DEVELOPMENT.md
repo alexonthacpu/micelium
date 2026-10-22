@@ -84,6 +84,21 @@ playing, and **Loop** repeats the duration. Keys persist when closing/reopening
 Animate during this page session; they are not stored across page reloads.
 The existing video/GIF player remains separate; Animate uses still images.
 
+### Animation dock size
+
+Animation starts in a compact bottom dock (36% of the workspace, up to 360 px).
+Drag the divider above it up or down to choose how much space goes to the
+viewport or the timeline. The dock scrolls internally at small sizes, keeping
+all controls and instructions available. Its settings and action buttons are
+grouped separately, with a shorter timeline track and tighter spacing.
+
+The divider is keyboard focusable: Up/Down changes height by 16 px (48 px with
+Shift), Home minimizes it, End expands it while retaining a 160 px viewport,
+and Enter or a double-click restores the compact default. The chosen height
+survives closing/reopening Animation during this page session, and adapts to
+window resizing. Dock resizing only changes display fitting; keyframes,
+playhead time, composition settings and exported pixels are unchanged.
+
 ### Matching preview and output
 
 The viewport shows the composition fitted to the available area. Its selected
@@ -173,6 +188,9 @@ image/video upload and menu behavior with external requests blocked.
 
 At widths up to 767 px, and on coarse-pointer landscape screens up to 500 px
 high, the viewport stays above an independently scrolling controls pane. The
+upper workspace now takes 56% of portrait screen height (60% on short landscape
+screens), giving the preview more room while preserving text sizes and touch
+targets in the smaller controls pane below. The
 decorative logo is hidden, a Load File button remains available after upload,
 and controls use larger touch targets and native selects. Image styles,
 PNG/SVG export and the existing media player remain available. Export dialogs
@@ -194,6 +212,16 @@ the basic video player and desktop-only Animation. It also verifies actual
 Garamono glyph rendering, explicit keyframe overwrite without changing other
 keys, interpolation after saving, and timeline preservation across layout changes.
 Physical phones and native Safari still require a manual check.
+
+After the logo's first click switches it from video to the static character,
+hovering the character replaces the pointer with a Garamono “refresh page” label.
+Clicking still reloads the page; keyboard Enter/Space also activates the static
+character. The first video-state cursor is retained. Selected custom dropdown
+rows use the same black background and white foreground for their chevrons.
+
+Responsive checks also cover mouse/keyboard dock resizing and reset, bounds
+after window resizing, unchanged timeline/export pixels, the logo reload flow
+and actual cursor font, and selected dropdown-arrow colors.
 
 
 ## Navigation compatibility checks
