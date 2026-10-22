@@ -1,0 +1,149 @@
+// Phone layout, touch scrolling and explicit keyframe overwrite behavior.
+const assert = require('node:assert/strict');
+const fs = require('node:fs/promises');
+const { chromium } = require('playwright');
+(async () => {
+    const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium', args: ['--no-sandbox'] });
+    const errors = [], external = [];
+    const base = process.env.MICELIUM_URL || 'http://127.0.0.1:8000';
+    async function load(page) {
+        page.on('pageerror', error => errors.push(error.message));
+        await page.route('**/*', route => {
+            const url = new URL(route.request().url());
+            if (url.origin === new URL(base).origin || ['data:', 'blob:'].includes(url.protocol)) return route.continue();
+            external.push(url.href); return route.abort();
+        });
+        await page.goto(base, { waitUntil: 'networkidle' });
+        await page.waitForFunction(() => cvLoaded && window.MiceliumAnimate);
+        await page.evaluate(() => document.fonts.ready);
+    }
+    const set = (page, id, value) => page.locator(id).evaluate((el, value) => {
+        el.value = value; el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true }));
+    }, String(value));
+    const settle = page => page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    const state = page => page.evaluate(() => MiceliumAnimate.snapshot());
+    const fonts = page => page.evaluate(() => document.fonts.check('12px WTGaramono') && [...document.querySelectorAll('body, body *')].every(el => getComputedStyle(el).fontFamily === 'WTGaramono'));
+    async function renderedFonts(page) {
+        const client = await page.context().newCDPSession(page);
+        await client.send('DOM.enable'); await client.send('CSS.enable');
+        const { root } = await client.send('DOM.getDocument');
+        const { nodeIds } = await client.send('DOM.querySelectorAll', { nodeId: root.nodeId, selector: 'button, label, .label, .cselect-label, .cselect-check, summary, p, h2, output, #status-bar' });
+        for (const nodeId of nodeIds) {
+            const { fonts } = await client.send('CSS.getPlatformFontsForNode', { nodeId });
+            for (const font of fonts) assert.equal(font.familyName, 'WT Garamono TRIAL', 'actual glyphs must not fall back to another font');
+        }
+        await client.detach();
+    }
+    try {
+        const mobile = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+        await load(mobile);
+        assert.equal(await fonts(mobile), true);
+        assert.equal(await mobile.locator('#logo-header').isVisible(), false);
+        const upload = mobile.waitForEvent('filechooser'); await mobile.locator('.mobile-controls-header button').tap();
+        const fixture = await mobile.evaluate(() => {
+            const c = document.createElement('canvas'); c.width = c.height = 96;
+            const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, 96, 96);
+            g.fillStyle = '#000'; g.fillRect(12, 12, 36, 60); g.beginPath(); g.arc(64, 48, 20, 0, Math.PI * 2); g.fill();
+            return c.toDataURL().split(',')[1];
+        });
+        await (await upload).setFiles({ name: 'phone.png', mimeType: 'image/png', buffer: Buffer.from(fixture, 'base64') });
+        await mobile.waitForFunction(() => MiceliumEditor.ready()); await settle(mobile);
+        const viewport = await mobile.locator('#viewport').boundingBox();
+        assert.equal(viewport.y, 0);
+        const client = await mobile.context().newCDPSession(mobile);
+        // A real touch swipe in the lower pane scrolls controls, never the preview.
+        await client.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 180, y: 760 }] });
+        for (let y = 740; y >= 500; y -= 30) await client.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: 180, y }] });
+        await client.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+        await mobile.waitForFunction(() => document.getElementById('ui').scrollTop > 50);
+        assert.deepEqual(await mobile.locator('#viewport').boundingBox(), viewport);
+        for (let n = 1; n <= 6; n++) {
+            await mobile.selectOption('#styleSelect', String(n)); await settle(mobile);
+            assert.equal(await mobile.locator('#styleSelect').isVisible(), true);
+            const ink = await mobile.locator('#canvas-holder canvas').evaluate(c => {
+                const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+                let dark = 0, light = 0;
+                for (let i = 0; i < d.length; i += 4) { if (d[i] < 128) dark++; if (d[i] > 200) light++; }
+                return dark > 0 && light > 0;
+            });
+            assert.equal(ink, true, `phone style ${n} renders artwork`);
+        }
+        await mobile.locator('#p1').scrollIntoViewIfNeeded();
+        const slider = await mobile.locator('#p1').boundingBox(), oldValue = await mobile.locator('#p1').inputValue();
+        await mobile.touchscreen.tap(slider.x + slider.width * .25, slider.y + slider.height / 2);
+        assert.notEqual(await mobile.locator('#p1').inputValue(), oldValue);
+        await mobile.locator('#btnExportSettings').tap();
+        await mobile.selectOption('#exportQualitySelectModal', '1');
+        for (const [button, ext] of [['#expBlack', '.png'], ['#expSvg', '.svg']]) {
+            const [download] = await Promise.all([mobile.waitForEvent('download'), mobile.locator(button).tap()]);
+            assert.equal(await download.failure(), null); assert.ok(download.suggestedFilename().endsWith(ext));
+            assert.ok((await fs.readFile(await download.path())).length > 100);
+        }
+        assert.equal(await fonts(mobile), true);
+        await mobile.locator('#modalCloseBtn').tap();
+        console.log('PASS: phone touch scroll, six styles, slider editing, PNG/SVG export and Garamono throughout');
+        for (const size of [{ width: 320, height: 568 }, { width: 844, height: 390 }]) {
+            await mobile.setViewportSize(size); await settle(mobile);
+            assert.equal(await mobile.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+            assert.equal(await mobile.locator('#viewport').evaluate(el => el.getBoundingClientRect().top), 0);
+            await mobile.locator('#menu-toggle').tap();
+            assert.equal(await mobile.locator('#menu-animate').isDisabled(), true);
+            const dark = await mobile.locator('#menu-dark').boundingBox();
+            assert.equal(await mobile.evaluate(({ x, y, width, height }) => document.elementFromPoint(x + width / 2, y + height / 2).closest('button')?.id, dark), 'menu-dark');
+            await mobile.evaluate(() => MiceliumAnimate.toggle(true));
+            assert.equal((await state(mobile)).active, false);
+            await mobile.locator('#menu-about').tap();
+            assert.equal(await mobile.locator('#about-dialog').evaluate(el => el.open), true);
+            await mobile.locator('#about-dialog button').tap();
+        }
+        console.log('PASS: narrow/landscape phones have no horizontal overflow; Animation is unavailable; menu stays usable');
+        await mobile.setViewportSize({ width: 320, height: 568 });
+        await mobile.locator('#fileInput').setInputFiles(require('node:path').join(__dirname, '../img/1_1.mp4'));
+        await mobile.waitForFunction(() => isVideoMode && videoEl?.readyState >= 2 && !videoEl.paused);
+        await mobile.locator('#btnPlayPause').tap();
+        assert.equal(await mobile.evaluate(() => videoEl.paused), true);
+        assert.equal(await mobile.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+        assert.ok((await mobile.locator('#viewport').boundingBox()).height > 80);
+        await renderedFonts(mobile);
+        console.log('PASS: existing video player stays usable on a narrow phone; actual rendered text uses only Garamono');
+
+        const desktop = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+        await load(desktop);
+        assert.equal(await desktop.locator('body').evaluate(el => getComputedStyle(el).fontSize), '13px');
+        await desktop.locator('#fileInput').setInputFiles({ name: 'desktop.png', mimeType: 'image/png', buffer: Buffer.from(fixture, 'base64') });
+        await desktop.waitForFunction(() => MiceliumEditor.ready());
+        await desktop.click('#menu-toggle');
+        assert.match(await desktop.locator('#menu-animate').textContent(), /WORK IN PROGRESS/);
+        await desktop.click('#menu-animate');
+        assert.equal(await fonts(desktop), true);
+        await renderedFonts(desktop);
+        await desktop.click('#animate-help summary');
+        assert.match(await desktop.locator('#animate-help').textContent(), /other keys stay unchanged/);
+        await desktop.click('#animate-help summary');
+        await set(desktop, '#animate-seek-time', 5); await set(desktop, '#p1', 180); await desktop.click('#animate-add');
+        const before = (await state(desktop)).frames;
+        await desktop.locator('.animate-key-shortcut').first().click();
+        await set(desktop, '#p1', 50);
+        assert.match(await desktop.locator('#animate-key-status').textContent(), /UNSAVED CHANGES/);
+        assert.match(await desktop.locator('#animate-add').textContent(), /OVERWRITE KEYFRAME 01/);
+        assert.deepEqual((await state(desktop)).frames, before, 'edits remain a draft until explicitly saved');
+        await desktop.click('#animate-add');
+        const after = (await state(desktop)).frames;
+        assert.equal(after.length, 2); assert.equal(after[0].id, before[0].id); assert.equal(after[0].values.p1, 50);
+        assert.deepEqual(after[1], before[1], 'overwriting the first key preserves the other key');
+        assert.match(await desktop.locator('#animate-key-status').textContent(), /SAVED/);
+        assert.match(await desktop.locator('#animate-message').textContent(), /Keyframe 1 overwritten/);
+        assert.equal(await desktop.locator('.animate-key[aria-pressed="true"]').textContent(), '01');
+        await set(desktop, '#animate-seek-time', 2.5);
+        assert.equal(Number(await desktop.locator('#p1').inputValue()), 115, 'new key values drive interpolation');
+        assert.match(await desktop.locator('#animate-add').textContent(), /ADD KEYFRAME/);
+        const keys = (await state(desktop)).frames;
+        await desktop.setViewportSize({ width: 390, height: 844 }); await settle(desktop);
+        assert.equal((await state(desktop)).active, false);
+        await desktop.setViewportSize({ width: 1440, height: 1000 }); await desktop.evaluate(() => MiceliumAnimate.toggle(true));
+        assert.deepEqual((await state(desktop)).frames, keys);
+        console.log('PASS: desktop typography, WIP label, help, numbered keys, explicit overwrite, interpolation and resize preservation');
+        assert.deepEqual(errors, []); assert.deepEqual(external, []);
+        console.log('PASS: no browser errors or external requests');
+    } finally { await browser.close(); }
+})().catch(error => { console.error(error); process.exitCode = 1; });
