@@ -24,6 +24,10 @@ body { height: 100dvh; }
 .modal-content { max-height: calc(100dvh - 32px); }
 .modal-body { overflow-y: auto; min-height: 0; }
 .modal-header, .modal-footer { flex-shrink: 0; }
+.still-export-options { display: grid; grid-template-columns: 1fr; gap: 8px; margin-bottom: 8px; }
+.still-export-options button { padding: 10px 8px; font-size: 13px; line-height: 1.5; border: 1px solid #000; background: #fff; color: #000; cursor: pointer; letter-spacing: .5px; }
+.still-export-options span { display: block; font-size: 12px; }
+#still-export-note { font-size: 12px; line-height: 1.5; margin: 8px 0 12px; }
 .menu-badge { font-size: 10px; border: 1px solid currentColor; padding: 3px 5px; letter-spacing: 0; }
 #editor-menu { width: 286px; }
 #menu-animate { gap: 12px; }

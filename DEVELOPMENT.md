@@ -52,9 +52,10 @@ are not application entry points.
 
 ## Menu and Animate
 
-The top-right menu opens About, Animation (marked **Work in progress**) and viewport dark mode. Ordinary PNG/SVG
-exports retain their existing explicit palettes. Animation compositions and
-animation exports follow the selected viewport palette.
+The top-right menu opens About, Animation (marked **Work in progress**) and viewport dark mode.
+Black/white PNG exports use transparent backgrounds. Colored/full-image PNGs,
+animation compositions and animation exports follow the selected viewport palette.
+SVG retains its style palette and has no background.
 
 Load a still image: Animate saves an initial key at zero. Adjust the sidebar
 and click **Overwrite keyframe 01** to save the key; seek to another time and
@@ -202,6 +203,7 @@ node tests/viewport-navigation.cjs
 node tests/responsive.cjs
 node tests/style-transitions.cjs
 node tests/image-fit.cjs
+node tests/image-export.cjs
 ```
 
 Set `BROWSER=webkit` to run the existing browser suites in Playwright WebKit;
@@ -234,6 +236,27 @@ panoramic/portrait sources, preserved source dimensions and byte-identical nativ
 PNG after zoom, double-click refitting and Animation's baseline camera. It also
 checks mobile naming and explicit black zoom-button styling. The active page
 title is **MYCLM beta**, and the mobile controls header is **MYCLM**.
+
+## Still image export labels
+
+Still-image buttons explicitly distinguish **PNG Black / Transparent Background**,
+**PNG White / Transparent Background** and **PNG Colored / Full Image**. The full
+image includes a white background in light mode or a black background in dark
+mode, using the same inversion as the viewport. Its subtitle identifies the
+background and, for monochrome styles, black on white or white on black. SVG is
+labelled **Vector / No Background**. Download names also identify the palette
+and background.
+
+Transparent black/white PNGs tint the original drawing coverage after rendering,
+including styles that normally paint their own colors. Bitmap dither temporarily
+uses its monochrome option, restoring the sidebar afterward. Hollow halftone
+centers become transparent cutouts before tinting, preserving ring geometry and
+antialiasing. The six style functions and viewport rendering are unchanged.
+
+`tests/image-export.cjs` inspects 36 downloaded PNGs across six styles and both
+palettes: actual alpha/color values, opaque backgrounds, dark inversion, hollow
+centers, native/2× dimensions, unchanged controls, truthful names and mobile
+label fit. Existing smoke tests retain SVG coverage.
 
 ## Phone layout and typography
 
