@@ -175,7 +175,7 @@
 #animate-panel #animate-track { height: 116px; }
 /* Separate lanes: the top triangle scrubs time, floating diamonds move keys. */
 #animate-markers .animate-key { top: 37px; min-width: 28px; width: 28px; height: 28px; display: block; padding: 0; border: 0; background: transparent; color: #000; z-index: 3; }
-#animate-markers .animate-key::before { width: 16px; height: 16px; top: 6px; left: 6px; border: 1px solid #000; background: #fff; transform: rotate(45deg); }
+#animate-markers .animate-key::before { width: 14px; height: 14px; top: 7px; left: 7px; border: 1px solid #000; background: #fff; transform: rotate(45deg); }
 #animate-markers .animate-key::after { display: none; }
 #animate-markers .animate-key:hover, #animate-markers .animate-key[aria-pressed="true"] { background: transparent; color: #000; }
 #animate-markers .animate-key:hover::before, #animate-markers .animate-key[aria-pressed="true"]::before { background: #000; }

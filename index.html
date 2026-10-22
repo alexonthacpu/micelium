@@ -865,13 +865,14 @@
                     </select>
                 </div>
                 
-                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:8px;">
-                    <button id="expBlack" style="padding:9px 4px; font-size:11.5px; border:1px solid #000; background:#fff; color:#000; cursor:pointer; font-family:inherit; font-weight:400; letter-spacing:1px; text-transform:uppercase;">PNG BLK</button>
-                    <button id="expWhite" style="padding:9px 4px; font-size:11.5px; border:1px solid #000; background:#fff; color:#000; cursor:pointer; font-family:inherit; font-weight:400; letter-spacing:1px; text-transform:uppercase;">PNG WHT</button>
-                    <button id="expColor" style="padding:9px 4px; font-size:11.5px; border:1px solid #000; background:#fff; color:#000; cursor:pointer; font-family:inherit; font-weight:400; letter-spacing:1px; text-transform:uppercase;">PNG CLR</button>
+                <div class="still-export-options">
+                    <button id="expBlack">PNG BLACK<span>TRANSPARENT BACKGROUND</span></button>
+                    <button id="expWhite">PNG WHITE<span>TRANSPARENT BACKGROUND</span></button>
+                    <button id="expColor">PNG COLORED / FULL IMAGE<span id="still-export-background">BLACK ON WHITE · SOLID BACKGROUND</span></button>
                 </div>
+                <p id="still-export-note">Black and white PNGs have no background. Colored / full image includes the background shown above and follows dark mode.</p>
                 
-                <button id="expSvg" style="width:100%; padding:9px; border:1px solid #000; background:#fff; color:#000; cursor:pointer; font-family:inherit; font-size:11.5px; font-weight:400; letter-spacing:1px; text-transform:uppercase; margin-bottom:4px;">EXPORT SVG (VECTOR)</button>
+                <button id="expSvg" style="width:100%; padding:9px; border:1px solid #000; background:#fff; color:#000; cursor:pointer; font-family:inherit; font-size:11.5px; font-weight:400; letter-spacing:1px; text-transform:uppercase; margin-bottom:4px;">SVG VECTOR · NO BACKGROUND</button>
             </div>
 
             <!-- SECTION: Video/animation export (visible only in video/GIF mode) -->
@@ -1420,6 +1421,7 @@ function setup() {
             const infoText = document.getElementById('modalInfoText');
 
             const isMedia = isVideoMode || isGifMode;
+            updateStillExportLabels();
             if (videoSection) videoSection.style.display = isMedia ? 'block' : 'none';
             if (startBtn) startBtn.style.display = isMedia ? 'block' : 'none';
             if (cancelBtn) cancelBtn.innerText = 'CLOSE';
@@ -3313,6 +3315,14 @@ function toggleViewportRecording() {
 }
 
 // --- EXPORT SINGOLO FRAME (PNG / SVG) ---
+function updateStillExportLabels() {
+    const dark = document.getElementById('viewport').classList.contains('viewport-dark');
+    const colored = ['2', '5'].includes(document.getElementById('styleSelect').value);
+    document.getElementById('still-export-background').textContent = colored
+        ? `COLORED · ${dark ? 'BLACK' : 'WHITE'} BACKGROUND`
+        : `${dark ? 'WHITE ON BLACK' : 'BLACK ON WHITE'} · SOLID BACKGROUND`;
+}
+
 function exportFile(col, format) {
     let source = isVideoMode ? videoGraphics : (rawSourceMedia || originalImg || img);
     let info = document.getElementById('modalInfoText');
@@ -3337,31 +3347,67 @@ function exportFile(col, format) {
         exportCanvas.pixelDensity(qualityScale);
     }
     exportCanvas.clear(); 
+    const withBackground = format === 'png' && col === 'color';
+    const darkBackground = withBackground && document.getElementById('viewport').classList.contains('viewport-dark');
+    if (withBackground) exportCanvas.background(255);
     
     let mode = document.getElementById('styleSelect').value;
     let p = readStyleParameters();
     
     let savedImg = img;
     img = source;
+    const exportColorMode = document.getElementById('colorModeSelect');
+    const savedColorMode = exportColorMode.value;
+    if (format === 'png' && !withBackground) exportColorMode.value = 'bw';
+    const renderColor = format === 'png' && !withBackground ? 0 : col;
 
     try {
         // Keep export independent of cached viewport draws and previous exports.
         randomSeed(42);
-        if (mode == "1") renderStyle01(exportCanvas, p[0], p[1], p[2], p[3], col);
-        else if (mode == "2") renderStyle02(exportCanvas, p[0], p[1], p[2], col);
-        else if (mode == "3") renderStyle03(exportCanvas, p[0], p[1], p[2], p[3], col);
-        else if (mode == "4") renderStyle04(exportCanvas, p[0], p[1], p[2], p[3], col);
+        if (mode == "1") renderStyle01(exportCanvas, p[0], p[1], p[2], p[3], renderColor);
+        else if (mode == "2") renderStyle02(exportCanvas, p[0], p[1], p[2], renderColor);
+        else if (mode == "3") renderStyle03(exportCanvas, p[0], p[1], p[2], p[3], renderColor);
+        else if (mode == "4") renderStyle04(exportCanvas, p[0], p[1], p[2], p[3], renderColor);
         else if (mode == "5") renderStyle05(exportCanvas, p[0], p[1], p[2], p[3]); 
-        else if (mode == "6") renderStyle06(exportCanvas, p[0], p[1], p[2], p[3], col); 
+        else if (mode == "6") renderStyle06(exportCanvas, p[0], p[1], p[2], p[3], renderColor);
     } catch(err) {
         console.error("Errore durante render export:", err);
+    } finally {
+        img = savedImg;
+        exportColorMode.value = savedColorMode;
     }
-    
-    img = savedImg;
+
+    if (format === 'png') {
+        const context = exportCanvas.drawingContext;
+        context.save(); context.setTransform(1, 0, 0, 1, 0, 0);
+        if (!withBackground) {
+            if (mode === '4' && document.getElementById('circleModeSelect').value === 'hollow') {
+                // The legacy ring draws white centers. Turn those cutouts into
+                // transparency before tinting, preserving hollow geometry and AA.
+                const mask = context.getImageData(0, 0, context.canvas.width, context.canvas.height);
+                for (let i = 0; i < mask.data.length; i += 4) mask.data[i + 3] = Math.round(mask.data[i + 3] * (1 - mask.data[i] / 255));
+                context.putImageData(mask, 0, 0);
+            }
+            // Some styles paint their own palette. Preserve their exact coverage
+            // while making the explicitly black/white transparent options truthful.
+            context.globalCompositeOperation = 'source-in';
+            context.fillStyle = col === 255 ? '#fff' : '#000';
+            context.fillRect(0, 0, context.canvas.width, context.canvas.height);
+        } else if (darkBackground) {
+            // Match the viewport's dark palette after compositing onto solid white.
+            context.globalCompositeOperation = 'difference'; context.fillStyle = '#fff';
+            context.fillRect(0, 0, context.canvas.width, context.canvas.height);
+        }
+        context.restore();
+    }
 
     let prefix = isVideoMode ? (isGifMode ? "mycelium_gif_frame" : "mycelium_video_frame") : "mycelium_export";
     let scaleLabel = format !== 'svg' ? `_${qualityScale}x` : '';
-    let filename = `${prefix}${scaleLabel}.${format}`;
+    const paletteLabel = format === 'svg' ? '_vector_no-background' : withBackground
+        ? `_colored_${darkBackground ? 'black' : 'white'}-background`
+        : `_${col === 255 ? 'white' : 'black'}_transparent`;
+    const exportName = `${prefix}${paletteLabel}${scaleLabel}`;
+    let filename = `${exportName}.${format}`;
 
     if (format === 'svg') {
         try {
@@ -3387,17 +3433,17 @@ function exportFile(col, format) {
                         setTimeout(() => URL.revokeObjectURL(url), 3000);
                         if (info) info.innerText = `Export completato con successo: ${filename}`;
                     } else {
-                        saveCanvas(exportCanvas, prefix + scaleLabel, format);
+                        saveCanvas(exportCanvas, exportName, format);
                         if (info) info.innerText = `Export completato: ${filename}`;
                     }
                 }, 'image/png');
             } else {
-                saveCanvas(exportCanvas, prefix + scaleLabel, format);
+                saveCanvas(exportCanvas, exportName, format);
                 if (info) info.innerText = `Export completato: ${filename}`;
             }
         } catch(e) {
             console.warn("Blob download fallback to saveCanvas:", e);
-            saveCanvas(exportCanvas, prefix + scaleLabel, format);
+            saveCanvas(exportCanvas, exportName, format);
             if (info) info.innerText = `Export completato: ${filename}`;
         }
     }
