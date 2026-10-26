@@ -16,3 +16,7 @@ cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30  vendor/opencv-
 eb2f25f8f165d5f20682c1ce7e99ce69144ecfd80fbed8c17dfd327ecd8b6cb6  vendor/p5-LICENSE.txt
 b6ff2e84985e55e86b876ee5dbfa6f22a160b1f42f608d301092edcdf46fa17e  vendor/p5.svg-1.3.1.js
 2fd53dac03ce704612e04ef136f8b9898f806e17656c703ff46a25abcb0ded67  vendor/p5.svg-LICENSE
+cc4d30bd20b9ffe0b15f59cf0de3e1930626ccd46a5146e36e4d619d7fecf63d  vendor/mp4-muxer-5.2.2.js
+75c54aae7ef6ad652f684f9dd3b71e4dcef86ccebd88cf441ceed7f5eec037c5  vendor/mp4-muxer-LICENSE
+8f072405cf7c9e23ae600948cb0ca2ff78c0277b3d78951cd4697b36d88ebd7b  vendor/webm-muxer-5.1.4.js
+1619f937fa43f768d38d2bfb35d228258e0dffe1f71c4202b338df20e68ff680  vendor/webm-muxer-LICENSE

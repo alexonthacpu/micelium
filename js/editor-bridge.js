@@ -43,8 +43,8 @@
                 const value = state[el.id];
                 if (value === undefined) continue;
                 const previous = el.type === 'checkbox' ? el.checked : el.value;
-                if (el.type === 'checkbox') el.checked = value;
-                else el.value = value;
+                if (el.type === 'checkbox') { if (el.checked !== value) el.checked = value; }
+                else if (el.value !== String(value)) el.value = value;
                 if (el.tagName === 'SELECT' && previous !== el.value) el._cselectRefresh?.();
             }
             document.querySelectorAll('input[name="colorMapType"]').forEach(el => { el.checked = el.value === state.colorMapType; });

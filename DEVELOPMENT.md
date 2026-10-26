@@ -1,6 +1,6 @@
 # Development baseline
 
-Micelium is a static application. `index.html` is the entry point; `img/` and
+MYCLM is a static application. `index.html` is the entry point; `img/` and
 `font/` contain existing assets. No package installation or build is needed.
 
 From the repository root:
@@ -168,24 +168,55 @@ detail is never reduced.
 
 ### Animation export
 
-**Export Animation** opens format/FPS controls with progress and cancellation:
+**Export Animation** controls format, FPS (12/15/24/25/30/50/60), output
+resolution independently of preview (up to a 3840 px long edge, or source capped
+at 4096), bitrate and frame range. Quality presets are 12, 24 and 50 Mbps; custom
+bitrate accepts 1–100 Mbps. PNG is lossless and disables bitrate controls.
 
-- WebM/MP4 are shown only when the browser reports recording support. Video
-  records the composition in real time; heavy rendering can skip frames. Keep
-  this tab visible. The extension matches the actual selected container.
-- PNG sequence ZIP renders every frame at `frame index / fps`, independent of
-  rendering speed. It includes `animation.json` with duration, dimensions,
-  camera, palette and saved keys. Frames include zero and exclude the terminal
-  endpoint; a non-integral duration×FPS rounds up to include timestamps below
-  the duration. Source image pixels are not embedded in the JSON.
+Frame numbers start at zero. A custom range includes both first and last
+selected frames; timestamps sample `(startFrame + index) / fps`. All Frames
+includes every timestamp before the timeline's duration, excluding the terminal
+endpoint. Output video starts at zero and lasts `selected frame count / fps`.
+The summary shows actual dimensions, frame count, duration and palette.
 
-Video uses native MediaRecorder and ZIP uses the already vendored JSZip: no
-new application dependency or CDN. Export snapshots the saved timeline, pauses
-playback, and restores the prior playhead and parameter draft after completion,
-cancellation or errors. Cancellation downloads no partial file. Hiding the tab
-cancels the export to avoid incorrect recording. PNG payload is capped at
-192 MB to bound memory; reduce resolution/FPS if the cap is exceeded. PNG ZIP
-remains available when no recording codec is available.
+On browsers with supported WebCodecs encoders, MP4/H.264 and WebM/VP9 encode
+frames offline in order. Each VideoFrame has an explicit microsecond timestamp
+and duration. Encoder backpressure is bounded and the final encoded frame count
+is checked before download, so slow geometry calculations cannot drop frames.
+Native encoder capabilities are probed for the requested size/FPS/bitrate.
+Unmodified MIT-licensed mp4-muxer and webm-muxer bundles assemble local files;
+see vendor/SOURCES.md. A browser without a usable offline encoder can expose
+an explicitly labelled realtime compatibility mode using MediaRecorder, which
+may skip frames under load. PNG sequence remains frame-accurate everywhere.
+
+PNG ZIP contains every requested frame and animation.json with source duration,
+selected range, actual output dimensions, FPS, processing detail, palette, bitrate
+and saved keys. Output size never changes preview framing or the selected
+processing detail. All export outcomes restore the prior editor frame and draft.
+Cancellation downloads no partial file. Hiding the tab or entering phone layout
+cancels the job. PNG payload is capped at 192 MB; encoded video at 512 MB.
+
+### Smooth preview
+
+**Smooth Preview → Prepare & Play** prepares the saved timeline at 24, 30 or 60
+FPS. Frames are lossless PNGs rendered at the display's actual native density,
+with the same retained vector geometry, palette and dithering as live playback.
+No processing detail is lowered. During playback a small lookahead decodes
+frames into ImageBitmaps instead of recalculating OpenCV and style geometry.
+Only nearby decoded images are kept; compressed frames have a 192 MB bound.
+Exceeding that limit reports an error rather than reducing drawing quality.
+
+Prepared frames are valid only for the same source, keys, duration, composition,
+palette, inspection camera and display dimensions/density. A changed view uses
+live vector rendering until another preview is prepared. Live Play remains
+available immediately. Transport actions and readouts have separate rows with
+reserved status widths, avoiding viewport jumps as palette/FPS text changes.
+Dark preview inverts the complete composed viewport once, preserving exact
+light/dark symmetry even at antialiased composition edges. Export and arbitrary-time seeking always use the exact
+composition renderer, independent of playback cache. Preparation is cancellable
+and restores the editor on every outcome. Internal legacy Micelium* API/event
+names and the old dark-mode preference key remain for compatibility; public
+copy and download filenames use MYCLM.
 
 The modules under `js/` separate timeline math, existing-sketch adaptation,
 composition rendering, export encoding, export dialog, Animate and navigation.
@@ -204,6 +235,7 @@ node tests/responsive.cjs
 node tests/style-transitions.cjs
 node tests/image-fit.cjs
 node tests/image-export.cjs
+node tests/advanced-animation.cjs
 ```
 
 Set `BROWSER=webkit` to run the existing browser suites in Playwright WebKit;
@@ -290,10 +322,15 @@ Physical phones and native Safari still require a manual check.
 All application chrome uses black, white and neutral gray, including native
 control accents, selection/focus, draft indicators, recording state and the
 playhead. Existing artwork palette options are independent of the interface.
-About is a larger dialog with a fixed header and an internally scrolling body,
-including the six algorithm descriptions, local processing, deterministic
-randomness, halftone perception and animation/export details. It uses the same
-local Garamono typography on desktop and phone.
+About is a concise MYCLM introduction: brightness/edge processing becomes lines,
+dots and dithering; keyframes animate the result. A short paragraph explains the
+open-source, co-designed future and links to the existing GitHub repository.
+It retains Garamono, monochrome styling and scrolling when needed. Existing
+style names remain, with parenthetical explanations removed. Bitmap's first
+slider is Grid Spacing (not another threshold); Dither's wave control is Wave
+Frequency; Agon's Relief Profile is distinct from its numeric Relief Depth.
+Option values, parameter ranges and the six original render algorithms remain
+unchanged. Visible slider names are also their accessible labels.
 
 `tests/style-transitions.cjs` checks all 30 ordered pairs of distinct styles,
 exact endpoints, binary endpoint-pixel selection, monotone deterministic
@@ -330,3 +367,12 @@ visible until click dispatch. Outside clicks, known outside focus targets and
 Escape still close it. Linux WebKit coverage supplements, but does not replace,
 a manual check in Safari on macOS. The missing upstream p5.svg.js.map is a
 DevTools source-map reference, not an application runtime script dependency.
+
+
+`tests/advanced-animation.cjs` requires ffprobe in addition to Chromium. It
+checks actual encoded frame counts and timestamps for MP4 and WebM with an
+artificially slow 80 ms/frame renderer, custom range/bitrate/output dimensions,
+PNG range pixel parity and metadata, editor restoration, prepared-frame Retina
+pixel parity, geometry reuse and cancellation. It also checks concise labels.
+Physical Safari and codecs unavailable in the environment are not covered by
+Chromium tests.
