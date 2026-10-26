@@ -51,8 +51,9 @@
         constructor(animation) {
             const dialog = document.createElement('dialog'); dialog.id = 'playback-preview-dialog'; dialog.setAttribute('data-editor-overlay', '');
             dialog.setAttribute('aria-labelledby', 'playback-preview-title');
-            dialog.innerHTML = `<h2 id="playback-preview-title">SMOOTH PREVIEW</h2><p>Prepare full-detail frames before playback. Changes to the image, keys or view require a new preview.</p><label>FPS <select id="playback-preview-fps"><option>24</option><option selected>30</option><option>60</option></select></label><progress id="playback-preview-progress" max="1" value="0"></progress><p id="playback-preview-status" role="status">Ready.</p><footer><button id="playback-preview-start">PREPARE &amp; PLAY</button><button id="playback-preview-cancel">CLOSE</button></footer>`;
+            dialog.innerHTML = `<h2 id="playback-preview-title">SMOOTH PREVIEW</h2><p>Prepare the current preview for steady playback. Export and image quality stay independent. Changes to the image, keys or view require a new preview.</p><label>FPS <select id="playback-preview-fps"><option>24</option><option selected>30</option><option>60</option></select></label><progress id="playback-preview-progress" max="1" value="0"></progress><p id="playback-preview-status" role="status">Ready.</p><footer><button id="playback-preview-start">PREPARE &amp; PLAY</button><button id="playback-preview-cancel">CLOSE</button></footer>`;
             document.body.append(dialog);
+            dialog.querySelectorAll('select').forEach(select => select.setAttribute('data-design-select', '')); window.MyclmSelect.enhance(dialog);
             const $ = suffix => dialog.querySelector(`#playback-preview-${suffix}`);
             let controller = null;
             const cancel = () => { if (controller) controller.abort(); else dialog.close(); };
@@ -65,7 +66,7 @@
                 if (!window.MiceliumEditor.ready() || animation.snapshot().frames.length < 2) {
                     document.getElementById('animate-message').textContent = 'Save at least two keys before preparing playback.'; return;
                 }
-                $('status').textContent = 'Ready. Preview uses native display detail.'; $('progress').value = 0; dialog.showModal();
+                $('status').textContent = 'Ready. Preview uses the selected quality.'; $('progress').value = 0; dialog.showModal();
             };
             $('start').onclick = async () => {
                 if (controller) return;

@@ -116,8 +116,7 @@ playhead time, composition settings and exported pixels are unchanged.
 ### Matching preview and output
 
 The viewport shows the composition fitted to the available area. Its selected
-720/1080/1920-pixel long edge, or source size capped at 1920, determines export
-size. Source aspect ratio is kept, with even dimensions for video codecs.
+720/1080/1920-pixel long edge, or source size capped at 1920, sets the default composition size; the export dialog can override it independently. Source aspect ratio is kept, with even dimensions for video codecs.
 The initial camera is full-image framing; keyed zoom is relative to that
 baseline. The inspection camera is separate: drag to pan, use two-finger scroll
 for pan and pinch or Ctrl/Cmd/Alt + scroll to zoom around the cursor. Two-touch
@@ -126,31 +125,22 @@ resets inspection only. Inspection remains available during playback and pause;
 it never changes keys, sampled parameters, time, or exported composition.
 Resizing the viewport changes display fitting, not composition coordinates.
 
-One shared renderer uses the same frame parameters, camera, deterministic
-random seed, processing detail and palette for preview and export. DETAIL is
-fixed: Source (the original normalized image, selected by default), Balanced
-(480 px edge), or Fine (720 px). A processing copy is shared by playback, pause and export; the original
-image remains unmodified. Changing DETAIL explicitly can change fine style
-geometry, but Play/Pause never changes it automatically. This replaces the old
-adaptive downsampling and jump on pause. Unchanged frames are cached.
-Playback remains time-based; expensive styles may reduce FPS rather than
-silently reduce detail. Measured FPS is shown; 60 FPS is not guaranteed for
-all images/hardware. The viewport replays native Path2D geometry at display pixel
-density; zoom never magnifies the export bitmap. Classic image navigation also
-reuses geometry: style/OpenCV calculations are needed only when source/style
-parameters change. Input bursts are coalesced with RAF instead of a 75 ms slider
-throttle; parameter edits no longer invalidate unchanged source pixels. Paths
-retain their original draw order, fill and stroke settings (no merging or
-simplification). Only the current scene, or the current pair during a style
-transition, is kept per viewport; animation geometry
-is reused for zoom-only keyframes. Playback draws the scene directly to the
-viewport; the export-size bitmap is rasterized only when requested. Capturing
-geometry does not also draw an unused intermediate frame. Original style equations and PNG/SVG formats
-are retained. Still exports seed randomness explicitly so cached viewport draws
-cannot change export output.
+Export and Full Detail preview share frame parameters, camera, random seed,
+processing detail and palette. Export Detail is explicit: Source (default),
+Balanced (480 px) or Fine (720 px). Fast/Balanced preview use their own processing
+copy and raster surface as described below, never changing export settings.
+Play/Pause do not switch quality profiles or upscale the processing source.
 
-For a style transition, both endpoints are retained as vectors and isolated in
-reusable canvases at the current target's actual pixel density. A deterministic
+Full Detail and classic image navigation retain native Path2D geometry for
+camera changes. Fast/Balanced retain raster geometry for zoom-only updates.
+Input bursts remain coalesced with RAF; original path order, fill/stroke and
+style equations are retained. Only the current scene/pair is kept per renderer.
+Measured FPS is observational and depends on image complexity/hardware. Still
+exports seed randomness explicitly so viewport draws cannot change the result.
+
+For a style transition, both endpoints are retained as vectors for export/Full
+Detail, or raster scenes for Fast/Balanced, and isolated in reusable canvases at
+the target pixel density. A deterministic
 64×64 ranked noise tile provides 4096 progressive thresholds. Each local cell
 selects one complete endpoint pixel, including its background, rather than
 mixing opacity. The grain scale derives from the normalized source dimensions
@@ -164,7 +154,7 @@ continuous keyed zoom. Dither-only frames reuse both native-density layers
 without geometry generation or path replay. Repeated seeks use the same noise,
 so pausing, scrubbing and exporting do not introduce random flicker. A
 camera/zoom, source or style change rebuilds the affected layers; processing
-detail is never reduced.
+export detail is never automatically reduced.
 
 ### Animation export
 
@@ -196,27 +186,61 @@ processing detail. All export outcomes restore the prior editor frame and draft.
 Cancellation downloads no partial file. Hiding the tab or entering phone layout
 cancels the job. PNG payload is capped at 192 MB; encoded video at 512 MB.
 
-### Smooth preview
+### Animation viewport and prepared playback
 
-**Smooth Preview → Prepare & Play** prepares the saved timeline at 24, 30 or 60
-FPS. Frames are lossless PNGs rendered at the display's actual native density,
-with the same retained vector geometry, palette and dithering as live playback.
-No processing detail is lowered. During playback a small lookahead decodes
-frames into ImageBitmaps instead of recalculating OpenCV and style geometry.
-Only nearby decoded images are kept; compressed frames have a 192 MB bound.
-Exceeding that limit reports an error rather than reducing drawing quality.
+Animation defaults to **Fast** feedback, independently of image mode and export.
+It renders onto a raster composition with at most a 720 px long edge, avoiding
+native-density Path2D recording/replay for every parameter change. A processing
+copy starts at 360 px and can step down to 240/180 px after a render exceeds
+45 ms. It does not oscillate upwards during playback. **Balanced** fixes the
+copy at 480 px; **Full Detail** retains the original native vector preview.
+Neither mode enlarges the source or modifies its pixels. Fast/Balanced never
+exceed the drawing detail selected for export.
 
-Prepared frames are valid only for the same source, keys, duration, composition,
-palette, inspection camera and display dimensions/density. A changed view uses
-live vector rendering until another preview is prepared. Live Play remains
-available immediately. Transport actions and readouts have separate rows with
-reserved status widths, avoiding viewport jumps as palette/FPS text changes.
-Dark preview inverts the complete composed viewport once, preserving exact
-light/dark symmetry even at antialiased composition edges. Export and arbitrary-time seeking always use the exact
-composition renderer, independent of playback cache. Preparation is cancellable
-and restores the editor on every outcome. Internal legacy Micelium* API/event
-names and the old dark-mode preference key remain for compatibility; public
-copy and download filenames use MYCLM.
+**Export Detail** and output resolution remain independent. frameCanvas(), PNG
+sequences and video use the selected full composition settings, not the preview
+copy or its raster. Classic image mode keeps its previous high quality. Zoom-only
+updates reuse raster or vector geometry instead of rerunning the style algorithm.
+
+**Smooth Preview → Prepare & Play** prepares the currently selected preview at
+24/30/60 FPS into lossless frames. A small lookahead decodes nearby images;
+waiting on decoding does not rerun heavy geometry. The cache is valid only for
+the same source, keys, duration, palette, preview profile/detail, camera and
+display dimensions/density. Full Detail preserves native Retina vector quality.
+Arbitrary-time seeking and export remain exact and independent of the cache.
+Preparation is cancellable, restores the editor, and caps compressed data at
+192 MB. Live Play remains immediately available. Separate transport/readout
+rows avoid viewport jumps. Dark preview inverts the complete viewport once,
+preserving light/dark symmetry on antialiased composition edges.
+
+### Animation backgrounds
+
+The Background control offers Auto (the existing viewport palette), White,
+Black and Custom. A native color picker and editable #RRGGBB value choose the
+custom color. Hollow dot cutouts use the chosen background without changing the
+original style function. Invalid hex values revert to the last valid color. Ink polarity
+adjusts for brightness contrast. The exact chosen background is kept in live,
+prepared and Full previews, PNG frames and video, and recorded in animation.json.
+The surrounding viewport still follows its theme; custom composition colors
+remain fixed when that theme changes. Background changes do not affect image
+mode or its photo exports.
+
+### Export interface
+
+The export dialog separates **File**, **Timing** and **Video Quality**, preceded
+by actual output size/FPS/frame count/duration/background. First/last frame
+controls appear together only for a custom range. Bitrate controls appear only
+for video, with a separate custom value when needed. Progress and the primary
+export action are separated from configuration.
+
+Animation controls and export use a shared custom select matching the site's
+black/white rows and inset double chevrons. The native select retains its value,
+label, events and disabled state beneath the visual control. Pointer and keyboard
+navigation use a positioned listbox, with Home/End, typeahead, Enter, Tab and
+Escape. Popovers escape dialog scrolling/clipping; a fixed-position fallback
+supports browsers without the Popover API. Image sidebar selects are unchanged.
+Internal legacy Micelium* API/event names and the old dark-mode preference key
+remain for compatibility; public copy and filenames use MYCLM.
 
 The modules under `js/` separate timeline math, existing-sketch adaptation,
 composition rendering, export encoding, export dialog, Animate and navigation.
@@ -236,6 +260,7 @@ node tests/style-transitions.cjs
 node tests/image-fit.cjs
 node tests/image-export.cjs
 node tests/advanced-animation.cjs
+node tests/animation-interface.cjs
 ```
 
 Set `BROWSER=webkit` to run the existing browser suites in Playwright WebKit;
@@ -376,3 +401,10 @@ PNG range pixel parity and metadata, editor restoration, prepared-frame Retina
 pixel parity, geometry reuse and cancellation. It also checks concise labels.
 Physical Safari and codecs unavailable in the environment are not covered by
 Chromium tests.
+
+`tests/animation-interface.cjs` verifies actual custom-menu clicks and keyboard
+selection, arrow inset and popup bounds, conditional export controls, exact
+background pixels and PNG metadata, decoded video background, Fast/full-output
+separation and byte-identical photo export. Render-cost measurements for Techno
+Organic and Agon on a generated 960×640 source are observational, not universal
+FPS assertions. Native vector-quality tests explicitly select Full Detail.

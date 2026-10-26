@@ -55,7 +55,7 @@ const { chromium } = require('playwright');
             const state = await page.evaluate(() => MiceliumAnimate.snapshot());
             assert.ok(state.playing && state.time > 0);
             assert.equal(await page.locator('#styleSelect').inputValue(), String(style));
-            console.log(`Style ${style}: ${await page.locator('#animate-performance').textContent()} · fixed ${await page.locator('#animate-detail').inputValue()} detail`);
+            console.log(`Style ${style}: ${await page.locator('#animate-performance').textContent()} · preview ${await page.evaluate(() => MiceliumAnimate.previewSettings().detail)} px · export ${await page.locator('#animate-detail').inputValue()}`);
             await page.click('#animate-pause');
             assert.equal(await page.evaluate(() => img.width), 1024, 'source must remain unchanged');
         }

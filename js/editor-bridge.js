@@ -66,14 +66,14 @@
             copy.pixelDensity(1); copy.drawingContext.drawImage(img.canvas, 0, 0, copy.width, copy.height);
             return copy;
         },
-        paintComposition(target, state, cameraBase, dark, sourceOverride) {
+        paintComposition(target, state, cameraBase, dark, sourceOverride, background = '#ffffff') {
             const original = img;
             if (sourceOverride) img = sourceOverride;
             try {
                 const zoom = (state.zoomSlider || 1) / Math.max(.001, cameraBase);
                 const fit = Math.min(target.width / img.width, target.height / img.height);
                 const p = ['p1', 'p2', 'p3', 'p4'].map(id => state[id]);
-                target.clear(); target.background(255); target.push();
+                target.clear(); target.background(background); target.push();
                 try {
                     // Legacy styles seed the target but sometimes call global random().
                     // Seed both to make a frame independent of the previous render.
@@ -82,6 +82,13 @@
                     target.scale(fit * zoom); target.translate(-img.width / 2, -img.height / 2);
                     const renderers = [null, renderStyle01, renderStyle02, renderStyle03, renderStyle04, renderStyle05, renderStyle06];
                     if (state.styleSelect === '2') renderStyle02(target, p[0], p[1], p[2], 0);
+                    else if (state.styleSelect === '4') {
+                        // The original hollow dots use white cutouts. In an opaque
+                        // composition those cutouts must match its chosen paper.
+                        const fill = target.fill;
+                        target.fill = function (...args) { return fill.apply(this, args.length === 1 && args[0] === 255 ? [background] : args); };
+                        try { renderStyle04(target, ...p, 0); } finally { target.fill = fill; }
+                    }
                     else renderers[Number(state.styleSelect)](target, ...p, 0);
                 } finally { target.pop(); }
                 if (dark) {

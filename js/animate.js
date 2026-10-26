@@ -5,6 +5,7 @@
     const phoneLayout = matchMedia('(max-width: 767px), (max-height: 500px) and (pointer: coarse)');
     const composition = new window.MiceliumComposition(editor, { retainDrawing: true });
     const playback = new window.MyclmPlaybackCache();
+    const livePreview = new window.MiceliumComposition(editor, { retainDrawing: false });
     const panel = document.createElement('section');
     panel.id = 'animate-panel'; panel.setAttribute('data-editor-overlay', ''); panel.hidden = true;
     panel.setAttribute('aria-label', 'Animation editor');
@@ -13,17 +14,22 @@
         <label>DURATION <input id="animate-duration" type="number" min="1" max="30" step="0.1" value="15" aria-label="Animation duration in seconds"> S</label>
         <label class="animate-loop-label" title="Stretch keyframes proportionally when changing duration"><input id="animate-retime" type="checkbox" checked> RETIME KEYS</label>
         <label>FRAME <select id="animate-resolution" aria-label="Composition resolution"><option value="720">720 PX</option><option value="1080">1080 PX</option><option value="1920">1920 PX</option><option value="source">SOURCE</option></select></label>
-        <label>DETAIL <select id="animate-detail" aria-label="Animation detail" title="Fixed detail shared by preview and export"><option value="480">BALANCED</option><option value="720">FINE</option><option value="source" selected>SOURCE</option></select></label>
+        <label>EXPORT DETAIL <select id="animate-detail" aria-label="Animation detail" title="Drawing detail used by export and Full preview"><option value="480">BALANCED</option><option value="720">FINE</option><option value="source" selected>SOURCE</option></select></label>
         </div><div class="animate-header-actions"><button id="animate-fit" title="Drag to pan; pinch or Ctrl/Cmd + scroll to zoom. Fit resets the view without changing keyframes or export.">FIT VIEW</button><span id="animate-view-zoom" class="editor-note">100%</span><button id="animate-export">EXPORT ANIMATION</button>
         <button id="animate-close" aria-label="Close Animate">×</button></div></header>
+        <div class="animate-view-controls">
+        <label>PREVIEW <select id="animate-preview-quality" title="Animation viewport only. Image mode and export keep their quality."><option value="fast" selected>FAST</option><option value="balanced">BALANCED</option><option value="full">FULL DETAIL</option></select></label>
+        <label>BACKGROUND <select id="animate-background-mode"><option value="auto">AUTO</option><option value="white">WHITE</option><option value="black">BLACK</option><option value="custom">CUSTOM</option></select></label>
+        <span id="animate-custom-background" hidden><input id="animate-background-color" type="color" value="#ffffff" aria-label="Animation background color"><input id="animate-background-hex" type="text" value="#ffffff" maxlength="7" spellcheck="false" aria-label="Background hex color"></span>
+        <span class="editor-note">Preview quality is independent of export. Ink adjusts to the background.</span></div>
         <details id="animate-help"><summary>HOW TO ANIMATE · ADD &amp; OVERWRITE KEYFRAMES</summary>
             <ol><li><strong>Start.</strong> Load a still image. Keyframe 01 is saved at 0 s. Adjust the sidebar parameters, then click <strong>Overwrite keyframe 01</strong> to save your starting look.</li>
             <li><strong>Add.</strong> Drag the top triangle to choose a time, or use SEEK. Choose a style and adjust its parameters, then click <strong>Add keyframe</strong>. Use <strong>End key</strong> for the final look. Different styles break apart and rebuild through dithering.</li>
             <li><strong>Edit &amp; save.</strong> Click a diamond keyframe or a key in the list to load it. Move any sidebar parameter, then click <strong>Overwrite keyframe</strong>. Your new values replace that key; other keys stay unchanged. Changes are a draft until saved.</li></ol>
-            <p><strong>Triangle = time. Diamond = saved keyframe.</strong> Drag a diamond in the middle lane to move its saved time; dragging the top triangle only previews the animation. Use Left/Right on either control for fine adjustments (Shift for larger steps). Each key stores its own style. To add a key during a style transition, change a sidebar control first to define its new look. Click the strip below two keys to edit their transition. Save changes before seeking or exporting. For heavier animations, use <strong>Smooth preview</strong> to prepare full-detail frames before playback. Changes to keys or the view need a new preview. Keys are kept only until this page is reloaded.</p>
+            <p><strong>Triangle = time. Diamond = saved keyframe.</strong> Drag a diamond in the middle lane to move its saved time; dragging the top triangle only previews the animation. Use Left/Right on either control for fine adjustments (Shift for larger steps). Each key stores its own style. To add a key during a style transition, change a sidebar control first to define its new look. Click the strip below two keys to edit their transition. Save changes before seeking or exporting. For heavier animations, use <strong>Smooth preview</strong> to prepare preview frames before playback. Changes to keys or the view need a new preview. Keys are kept only until this page is reloaded.</p>
         </details>
         <div class="animate-body"><div class="animate-sequence">
-        <div class="animate-transport"><button id="animate-play">PLAY</button><button id="animate-smooth" title="Prepare full-detail frames for smooth playback">SMOOTH PREVIEW</button><button id="animate-pause" disabled>PAUSE</button><button id="animate-restart" title="Play from the beginning">RESTART</button><button id="animate-stop" title="Pause and return to zero">STOP</button><button id="animate-prev" aria-label="Previous keyframe">‹ KEY</button><button id="animate-next" aria-label="Next keyframe">KEY ›</button>
+        <div class="animate-transport"><button id="animate-play">PLAY</button><button id="animate-smooth" title="Prepare the current preview for steady playback">SMOOTH PREVIEW</button><button id="animate-pause" disabled>PAUSE</button><button id="animate-restart" title="Play from the beginning">RESTART</button><button id="animate-stop" title="Pause and return to zero">STOP</button><button id="animate-prev" aria-label="Previous keyframe">‹ KEY</button><button id="animate-next" aria-label="Next keyframe">KEY ›</button>
             <output id="animate-time" aria-label="Current animation time">00:00.00 / 00:15.00</output>
             <label class="animate-loop-label"><input id="animate-loop" type="checkbox"> LOOP</label><span id="animate-frame-size" class="editor-note"></span><span id="animate-performance" class="editor-note"></span></div>
         <div id="animate-track" aria-label="Keyframe timeline"><div class="animate-ruler" aria-hidden="true"><span>0</span><span>5</span><span>10</span><span id="animate-end-label">15 S</span></div>
@@ -42,6 +48,8 @@
         <p class="editor-note">Select a strip to edit its curve. Dithering breaks apart one style and rebuilds the next; each keeps its saved parameters.</p>
         </div></div>`;
     document.getElementById('workspace').append(panel);
+    panel.querySelectorAll('select').forEach(select => select.setAttribute('data-design-select', ''));
+    window.MyclmSelect.enhance(panel);
     const content = document.createElement('div'); content.className = 'animate-content';
     content.append(...panel.childNodes); panel.append(content);
     const panelLayout = new window.MiceliumAnimationPanel(panel);
@@ -50,7 +58,7 @@
     let active = false, playing = false, frames = [], selected = null;
     let duration = 15, time = 0, nextId = 1, raf = 0, origin = 0;
     let cameraBase = 1, segmentId = null, exporting = false, curveRaf = 0;
-    let measuredFrames = 0, measuredStart = 0, playEpoch = 0;
+    let measuredFrames = 0, measuredStart = 0, playEpoch = 0, fastDetail = 360;
     let sampledScene = null;
     const format = t => `${String(Math.floor(t / 60)).padStart(2, '0')}:${(t % 60).toFixed(2).padStart(5, '0')}`;
     const message = text => { $('animate-message').textContent = text; };
@@ -81,14 +89,26 @@
         $('animate-add-end').textContent = frames.some(frame => Math.abs(frame.time - duration) < 1 / 120) ? 'OVERWRITE END KEY' : '+ END KEY';
         $('animate-add').classList.toggle('has-draft', !!dirty);
     }
+    function palette() {
+        const mode = $('animate-background-mode').value;
+        const background = mode === 'custom' ? $('animate-background-color').value : mode === 'white' ? '#ffffff' : mode === 'black' ? '#000000' : null;
+        return { background, dark: background ? window.MiceliumComposition.darkBackground(background) : document.getElementById('viewport').classList.contains('viewport-dark') };
+    }
     const settings = () => ({
         longEdge: $('animate-resolution').value === 'source' ? Math.min(1920, Math.max(editor.image().width, editor.image().height)) : Number($('animate-resolution').value),
-        cameraBase, detail: $('animate-detail').value, dark: document.getElementById('viewport').classList.contains('viewport-dark')
+        cameraBase, detail: $('animate-detail').value, ...palette()
     });
+    const previewSettings = () => {
+        const config = settings(), profile = $('animate-preview-quality').value;
+        return profile === 'full' ? config : { ...config, longEdge: Math.min(720, config.longEdge),
+            detail: String(Math.min(profile === 'fast' ? fastDetail : 480, config.detail === 'source' ? Infinity : Number(config.detail))) };
+    };
+    const previewRenderConfig = config => ({ ...config, dark: false,
+        background: config.background && config.dark ? window.MiceliumComposition.invertColor(config.background) : config.background });
     const viewport = new window.MiceliumAnimationViewport(document.getElementById('viewport'),
         () => active && !exporting && editor.ready(), () => { if (!playing) editor.render(); });
     $('animate-fit').onclick = () => viewport.reset();
-    function disposeComposition() { composition.dispose(); playback.dispose(); }
+    function disposeComposition() { composition.dispose(); livePreview.dispose(); playback.dispose(); }
     function initializeImage() {
         cameraBase = editor.capture().zoomSlider || 1; disposeComposition(); viewport.reset();
         if (!frames.length) {
@@ -143,7 +163,7 @@
         const kind = custom ? 'custom' : frame?.easing || 'linear';
         const points = custom ? frame.easing : presets[kind];
         $('animate-ease').disabled = !frame;
-        $('animate-ease').value = kind;
+        $('animate-ease').value = kind; $('animate-ease')._designRefresh?.();
         $('animate-bezier').hidden = !custom;
         ['x1', 'y1', 'x2', 'y2'].forEach((name, i) => {
             const input = $(`bezier-${name}`);
@@ -224,7 +244,7 @@
         sampledScene = sampleScene(frames, time);
         editor.apply(sampledScene?.from); editor.render(); renderTime(); measuredFrames++;
         if (stamp - measuredStart >= 1000) {
-            $('animate-performance').textContent = playback.ready && playback.key === playbackKey() ? `${playback.fps} FPS · PREPARED` : `${Math.round(measuredFrames * 1000 / (stamp - measuredStart))} FPS · EXACT PREVIEW`;
+            $('animate-performance').textContent = playback.ready && playback.key === playbackKey() ? `${playback.fps} FPS · PREPARED` : `${Math.round(measuredFrames * 1000 / (stamp - measuredStart))} FPS · ${$('animate-preview-quality').value.toUpperCase()} PREVIEW`;
             measuredFrames = 0; measuredStart = stamp;
         }
         if (time >= duration) { pause(); message('Playback complete. Play to restart, or scrub to edit.'); }
@@ -278,6 +298,18 @@
     $('animate-prev').onclick = () => jumpKey(frames.filter(frame => frame.time < time - .001).pop());
     $('animate-next').onclick = () => jumpKey(frames.find(frame => frame.time > time + .001));
     $('animate-resolution').onchange = $('animate-detail').onchange = () => { pause(); disposeComposition(); editor.render(); };
+    $('animate-preview-quality').onchange = () => { pause(); fastDetail = 360; livePreview.dispose(); playback.dispose(); editor.render(); };
+    function backgroundChanged() {
+        pause(); disposeComposition(); $('animate-custom-background').hidden = $('animate-background-mode').value !== 'custom';
+        editor.render();
+    }
+    $('animate-background-mode').onchange = backgroundChanged;
+    $('animate-background-color').oninput = () => { $('animate-background-hex').value = $('animate-background-color').value; backgroundChanged(); };
+    $('animate-background-hex').onchange = event => {
+        const color = event.target.value.trim();
+        if (/^#[0-9a-f]{6}$/i.test(color)) { $('animate-background-color').value = color.toLowerCase(); backgroundChanged(); }
+        else { event.target.value = $('animate-background-color').value; message('Use a hex color such as #f2e8d8.'); }
+    };
     $('animate-seek-time').onchange = event => {
         if (!Number.isFinite(event.target.valueAsNumber)) { renderTime(); return; }
         pause(); selected = null; seek(event.target.valueAsNumber); renderKeys();
@@ -427,7 +459,7 @@
     }, true);
     document.getElementById('btnExportSettings').addEventListener('click', () => pause(), true);
     document.addEventListener('micelium:media-loading', event => {
-        pause(false); sampledScene = null; disposeComposition();
+        pause(false); fastDetail = 360; sampledScene = null; disposeComposition();
         if (event.detail.animated && active) toggle(false);
     });
     document.addEventListener('micelium:image-ready', () => { if (active) initializeImage(); else disposeComposition(); message('Image ready. Save your starting parameters, then add an end key.'); editor.render(); });
@@ -442,7 +474,11 @@
         context.save(); context.resetTransform(); context.globalCompositeOperation = 'difference';
         context.fillStyle = '#fff'; context.fillRect(0, 0, context.canvas.width, context.canvas.height); context.restore();
     }
-    const playbackKey = () => JSON.stringify([frames, duration, settings(), viewport.snapshot(), width, height, pixelDensity()]);
+    const surroundShade = config => {
+        const shade = document.getElementById('viewport').classList.contains('viewport-dark') ? 17 : 238;
+        return config.dark ? 255 - shade : shade;
+    };
+    const playbackKey = () => JSON.stringify([frames, duration, settings(), $('animate-preview-quality').value, fastDetail, document.getElementById('viewport').classList.contains('viewport-dark'), viewport.snapshot(), width, height, pixelDensity()]);
     let resizeRaf = 0;
     new ResizeObserver(() => {
         cancelAnimationFrame(resizeRaf);
@@ -454,41 +490,52 @@
         frameCanvas: () => composition.renderScene(sampledScene || { from: editor.capture(), to: null, mix: 0 }, settings()).canvas,
         compositionSettings: settings,
         inspectionView: () => viewport.snapshot(),
+        previewSettings,
         drawComposition(target) {
             if (!active || !editor.ready()) return false;
             if (sampledScene && time < duration && playback.ready && Math.abs(time * playback.fps - Math.round(time * playback.fps)) < 1e-7 && playback.key === playbackKey()) {
                 const image = playback.get(Math.min(playback.blobs.length - 1, Math.round(time * playback.fps)));
                 if (image) { const context = target.drawingContext; context.save(); context.resetTransform(); context.drawImage(image, 0, 0); context.restore(); return true; }
             }
-            const config = settings(), scene = sampledScene || { from: editor.capture(), to: null, mix: 0 };
-            const buffer = composition.renderScene(scene, { ...config, dark: false }, { rasterize: false });
+            const config = previewSettings(), scene = sampledScene || { from: editor.capture(), to: null, mix: 0 }, full = $('animate-preview-quality').value === 'full';
+            const renderer = full ? composition : livePreview, renderStarted = performance.now();
+            const buffer = renderer.renderScene(scene, previewRenderConfig(config), { rasterize: !full });
             const fit = Math.max(.01, Math.min((width - 32) / buffer.width, (height - 32) / buffer.height));
-            target.clear(); target.background(238); target.push();
+            target.clear(); target.background(surroundShade(config)); target.push();
             const scale = fit * viewport.zoom, context = target.drawingContext;
             context.save();
             context.translate((width - buffer.width * scale) / 2 + viewport.x, (height - buffer.height * scale) / 2 + viewport.y);
-            context.scale(scale, scale); composition.paint(context); context.restore(); invertPreview(context, config.dark); target.pop();
+            if (full) { context.scale(scale, scale); renderer.paint(context); }
+            else { context.imageSmoothingEnabled = true; context.drawImage(buffer.canvas, 0, 0, buffer.width * scale, buffer.height * scale); }
+            context.restore(); invertPreview(context, config.dark); target.pop();
             $('animate-view-zoom').textContent = `${Math.round(viewport.zoom * 100)}%`;
-            const label = `${buffer.width} × ${buffer.height} · ${config.dark ? 'DARK' : 'LIGHT'}`;
+            const label = `${buffer.width} × ${buffer.height} · ${$('animate-preview-quality').value.toUpperCase()} PREVIEW`;
             if ($('animate-frame-size').textContent !== label) $('animate-frame-size').textContent = label;
+            $('animate-frame-size').title = full ? 'Full drawing detail' : `Preview processing edge: ${config.detail} px. Export keeps its selected detail.`;
+            if ($('animate-preview-quality').value === 'fast' && !exporting && performance.now() - renderStarted > 45 && fastDetail > 180) {
+                fastDetail = fastDetail > 240 ? 240 : 180; livePreview.dispose();
+                if (!playing) requestAnimationFrame(() => { if (active && !playing && !exporting && $('animate-preview-quality').value === 'fast') editor.render(); });
+            }
             return true;
         },
         async preparePlayback({ fps, signal, progress }) {
-            const saved = this.beginExport(), renderer = new window.MiceliumComposition(editor);
+            const saved = this.beginExport(), full = $('animate-preview-quality').value === 'full', renderer = new window.MiceliumComposition(editor, { retainDrawing: full });
             try {
                 // Establish playback's layout before capturing native-density frames.
                 playing = true; selected = null; renderKeys(); playing = false;
                 await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-                const key = playbackKey(), config = settings(), view = viewport.snapshot(), w = width, h = height, density = pixelDensity();
+                const key = playbackKey(), config = previewSettings(), view = viewport.snapshot(), w = width, h = height, density = pixelDensity();
                 const canvas = document.createElement('canvas'); canvas.width = w * density; canvas.height = h * density;
                 const context = canvas.getContext('2d');
                 await playback.prepare({ fps, duration, signal, key, progress, render: t => {
-                    const buffer = renderer.renderScene(sampleScene(saved.keyframes, t), { ...config, dark: false }, { rasterize: false });
-                    context.resetTransform(); context.fillStyle = '#eee'; context.fillRect(0, 0, canvas.width, canvas.height);
+                    const buffer = renderer.renderScene(sampleScene(saved.keyframes, t), previewRenderConfig(config), { rasterize: !full });
+                    context.resetTransform(); const shade = surroundShade(config); context.fillStyle = `rgb(${shade},${shade},${shade})`; context.fillRect(0, 0, canvas.width, canvas.height);
                     const scale = Math.max(.01, Math.min((w - 32) / buffer.width, (h - 32) / buffer.height)) * view.zoom;
                     context.setTransform(density, 0, 0, density, 0, 0);
                     context.translate((w - buffer.width * scale) / 2 + view.x, (h - buffer.height * scale) / 2 + view.y);
-                    context.scale(scale, scale); renderer.paint(context); invertPreview(context, config.dark); return canvas;
+                    if (full) { context.scale(scale, scale); renderer.paint(context); }
+                    else { context.imageSmoothingEnabled = true; context.drawImage(buffer.canvas, 0, 0, buffer.width * scale, buffer.height * scale); }
+                    invertPreview(context, config.dark); return canvas;
                 } });
             } finally { renderer.dispose(); this.finishExport(saved); }
         },

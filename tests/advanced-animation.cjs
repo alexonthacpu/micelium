@@ -25,7 +25,7 @@ const { chromium } = require('playwright');
   }
   assert.equal(await page.locator('#agonReliefDepth option[value="deep"]').textContent(), 'Deep Chisel');
   await page.selectOption('#styleSelect', '1', { force: true });
-  await page.evaluate(() => MiceliumAnimate.toggle(true)); await set('#animate-duration', 1); await page.selectOption('#animate-resolution', 'source');
+  await page.evaluate(() => MiceliumAnimate.toggle(true)); await page.selectOption('#animate-preview-quality', 'full'); await set('#animate-duration', 1); await page.selectOption('#animate-resolution', 'source');
   await set('#p1', 60); await page.click('#animate-add'); await page.click('#animate-add-end'); await set('#p1', 220); await page.click('#animate-add');
   await set('#animate-seek-time', .23);
   const before = await page.evaluate(() => ({ snapshot: MiceliumAnimate.snapshot(), pixels: MiceliumAnimate.frameCanvas().toDataURL(), settings: MiceliumAnimate.compositionSettings() }));

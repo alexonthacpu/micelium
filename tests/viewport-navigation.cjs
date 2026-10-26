@@ -75,7 +75,7 @@ const useWebKit = process.env.BROWSER === 'webkit';
         });
         assert.equal(inputBurst.calls, 1); assert.equal(inputBurst.sameSource, true); assert.equal(inputBurst.value, 109);
         console.log('PASS: six classic styles preserve geometry during pan/zoom; input bursts render once without source invalidation');
-        await page.evaluate(() => MiceliumAnimate.toggle(true)); await settle();
+        await page.evaluate(() => MiceliumAnimate.toggle(true)); await page.selectOption('#animate-preview-quality', 'full'); await settle();
         assert.equal(await page.locator('#animate-detail').inputValue(), 'source');
         // At 2x output resolution retained vector drawing must match fresh style rendering.
         for (let n = 1; n <= 6; n++) {
