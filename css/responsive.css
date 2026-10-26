@@ -88,7 +88,7 @@ body { height: 100dvh; }
     #exportModal button { min-height: 44px; }
     #exportModal .modal-close { min-width: 44px; }
     #exportModal input[type="number"] { max-width: 100%; font-size: 16px !important; }
-    #about-dialog { width: calc(100vw - 24px); height: 90dvh; max-height: calc(100dvh - 24px); overflow: hidden; font-size: 14px; }
+    #about-dialog { width: calc(100vw - 24px); height: fit-content; max-height: calc(100dvh - 24px); overflow: hidden; font-size: 14px; }
     #about-dialog header { padding: 14px 16px; }
     #about-dialog h2 { font-size: 20px; }
     #about-content { padding: 4px 18px 18px; }

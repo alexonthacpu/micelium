@@ -37,3 +37,12 @@ https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&fam
 `SHA256SUMS` records all retained vendor files except this source record and
 the checksum manifest itself. These hashes detect later changes; they are not
 a separately signed upstream authenticity claim.
+
+## Frame-accurate video export
+
+Unmodified MIT-licensed IIFE bundles and licenses from npm archives:
+
+- `mp4-muxer-5.2.2.js`, `mp4-muxer-LICENSE`: https://registry.npmjs.org/mp4-muxer/-/mp4-muxer-5.2.2.tgz (`package/build/mp4-muxer.js`, `package/LICENSE`).
+- `webm-muxer-5.1.4.js`, `webm-muxer-LICENSE`: https://registry.npmjs.org/webm-muxer/-/webm-muxer-5.1.4.tgz (`package/build/webm-muxer.js`, `package/LICENSE`).
+
+Encoding uses the browser's native WebCodecs API; no runtime CDN requests.

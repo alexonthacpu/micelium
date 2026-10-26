@@ -4,6 +4,7 @@
     const editor = window.MiceliumEditor;
     const phoneLayout = matchMedia('(max-width: 767px), (max-height: 500px) and (pointer: coarse)');
     const composition = new window.MiceliumComposition(editor, { retainDrawing: true });
+    const playback = new window.MyclmPlaybackCache();
     const panel = document.createElement('section');
     panel.id = 'animate-panel'; panel.setAttribute('data-editor-overlay', ''); panel.hidden = true;
     panel.setAttribute('aria-label', 'Animation editor');
@@ -11,7 +12,7 @@
         <label class="animate-source"><span>LOAD IMAGE</span><input id="animate-source" type="file" accept="image/png,image/jpeg,image/webp,image/bmp,image/svg+xml" aria-label="Load animation image"></label>
         <label>DURATION <input id="animate-duration" type="number" min="1" max="30" step="0.1" value="15" aria-label="Animation duration in seconds"> S</label>
         <label class="animate-loop-label" title="Stretch keyframes proportionally when changing duration"><input id="animate-retime" type="checkbox" checked> RETIME KEYS</label>
-        <label>FRAME <select id="animate-resolution" aria-label="Composition resolution"><option value="720">720 PX</option><option value="1080">1080 PX</option><option value="1920">1920 PX</option><option value="source">SOURCE (MAX 1920)</option></select></label>
+        <label>FRAME <select id="animate-resolution" aria-label="Composition resolution"><option value="720">720 PX</option><option value="1080">1080 PX</option><option value="1920">1920 PX</option><option value="source">SOURCE</option></select></label>
         <label>DETAIL <select id="animate-detail" aria-label="Animation detail" title="Fixed detail shared by preview and export"><option value="480">BALANCED</option><option value="720">FINE</option><option value="source" selected>SOURCE</option></select></label>
         </div><div class="animate-header-actions"><button id="animate-fit" title="Drag to pan; pinch or Ctrl/Cmd + scroll to zoom. Fit resets the view without changing keyframes or export.">FIT VIEW</button><span id="animate-view-zoom" class="editor-note">100%</span><button id="animate-export">EXPORT ANIMATION</button>
         <button id="animate-close" aria-label="Close Animate">×</button></div></header>
@@ -19,10 +20,10 @@
             <ol><li><strong>Start.</strong> Load a still image. Keyframe 01 is saved at 0 s. Adjust the sidebar parameters, then click <strong>Overwrite keyframe 01</strong> to save your starting look.</li>
             <li><strong>Add.</strong> Drag the top triangle to choose a time, or use SEEK. Choose a style and adjust its parameters, then click <strong>Add keyframe</strong>. Use <strong>End key</strong> for the final look. Different styles break apart and rebuild through dithering.</li>
             <li><strong>Edit &amp; save.</strong> Click a diamond keyframe or a key in the list to load it. Move any sidebar parameter, then click <strong>Overwrite keyframe</strong>. Your new values replace that key; other keys stay unchanged. Changes are a draft until saved.</li></ol>
-            <p><strong>Triangle = time. Diamond = saved keyframe.</strong> Drag a diamond in the middle lane to move its saved time; dragging the top triangle only previews the animation. Use Left/Right on either control for fine adjustments (Shift for larger steps). Each key stores its own style. To add a key during a style transition, change a sidebar control first to define its new look. Click the strip below two keys to edit their transition. Save changes before seeking or exporting. Keys are kept only until this page is reloaded.</p>
+            <p><strong>Triangle = time. Diamond = saved keyframe.</strong> Drag a diamond in the middle lane to move its saved time; dragging the top triangle only previews the animation. Use Left/Right on either control for fine adjustments (Shift for larger steps). Each key stores its own style. To add a key during a style transition, change a sidebar control first to define its new look. Click the strip below two keys to edit their transition. Save changes before seeking or exporting. For heavier animations, use <strong>Smooth preview</strong> to prepare full-detail frames before playback. Changes to keys or the view need a new preview. Keys are kept only until this page is reloaded.</p>
         </details>
         <div class="animate-body"><div class="animate-sequence">
-        <div class="animate-transport"><button id="animate-play">PLAY</button><button id="animate-pause" disabled>PAUSE</button><button id="animate-restart" title="Play from the beginning">RESTART</button><button id="animate-stop" title="Pause and return to zero">STOP</button><button id="animate-prev" aria-label="Previous keyframe">‹ KEY</button><button id="animate-next" aria-label="Next keyframe">KEY ›</button>
+        <div class="animate-transport"><button id="animate-play">PLAY</button><button id="animate-smooth" title="Prepare full-detail frames for smooth playback">SMOOTH PREVIEW</button><button id="animate-pause" disabled>PAUSE</button><button id="animate-restart" title="Play from the beginning">RESTART</button><button id="animate-stop" title="Pause and return to zero">STOP</button><button id="animate-prev" aria-label="Previous keyframe">‹ KEY</button><button id="animate-next" aria-label="Next keyframe">KEY ›</button>
             <output id="animate-time" aria-label="Current animation time">00:00.00 / 00:15.00</output>
             <label class="animate-loop-label"><input id="animate-loop" type="checkbox"> LOOP</label><span id="animate-frame-size" class="editor-note"></span><span id="animate-performance" class="editor-note"></span></div>
         <div id="animate-track" aria-label="Keyframe timeline"><div class="animate-ruler" aria-hidden="true"><span>0</span><span>5</span><span>10</span><span id="animate-end-label">15 S</span></div>
@@ -49,7 +50,7 @@
     let active = false, playing = false, frames = [], selected = null;
     let duration = 15, time = 0, nextId = 1, raf = 0, origin = 0;
     let cameraBase = 1, segmentId = null, exporting = false, curveRaf = 0;
-    let measuredFrames = 0, measuredStart = 0;
+    let measuredFrames = 0, measuredStart = 0, playEpoch = 0;
     let sampledScene = null;
     const format = t => `${String(Math.floor(t / 60)).padStart(2, '0')}:${(t % 60).toFixed(2).padStart(5, '0')}`;
     const message = text => { $('animate-message').textContent = text; };
@@ -58,6 +59,10 @@
     // Put editing actions beside their status, before the timeline, so saving is explicit.
     const transport = panel.querySelector('.animate-transport');
     transport.after($('animate-key-status'), panel.querySelector('.animate-key-actions'));
+    const playbackActions = document.createElement('div'); playbackActions.className = 'animate-playback-actions';
+    playbackActions.append(...transport.querySelectorAll(':scope > button'));
+    const readouts = document.createElement('div'); readouts.className = 'animate-readouts';
+    readouts.append(...transport.childNodes); transport.append(playbackActions, readouts);
     function renderKeyState() {
         const index = frames.findIndex(frame => Math.abs(frame.time - time) < 1 / 120);
         const key = frames[index], number = String(index + 1).padStart(2, '0');
@@ -83,7 +88,7 @@
     const viewport = new window.MiceliumAnimationViewport(document.getElementById('viewport'),
         () => active && !exporting && editor.ready(), () => { if (!playing) editor.render(); });
     $('animate-fit').onclick = () => viewport.reset();
-    function disposeComposition() { composition.dispose(); }
+    function disposeComposition() { composition.dispose(); playback.dispose(); }
     function initializeImage() {
         cameraBase = editor.capture().zoomSlider || 1; disposeComposition(); viewport.reset();
         if (!frames.length) {
@@ -194,22 +199,32 @@
         editor.render(); renderTime();
     }
     function pause() {
+        playEpoch++;
         cancelAnimationFrame(raf); raf = 0; playing = false;
         $('animate-play').disabled = false; $('animate-pause').disabled = true;
         $('animate-play').textContent = time > 0 && time < duration ? 'RESUME' : 'PLAY';
         renderKeyState();
     }
-    function tick(stamp) {
+    async function tick(stamp) {
         if (!playing) return;
         if (document.hidden || !editor.ready()) { pause(); return; }
-        const elapsed = (stamp - origin) / 1000;
+        const epoch = playEpoch, elapsed = (stamp - origin) / 1000;
+        let nextTime;
         if (elapsed >= duration && $('animate-loop').checked) {
-            origin += Math.floor(elapsed / duration) * duration * 1000; time = (stamp - origin) / 1000;
-        } else time = Math.min(duration, elapsed);
+            origin += Math.floor(elapsed / duration) * duration * 1000; nextTime = (stamp - origin) / 1000;
+        } else nextTime = Math.min(duration, elapsed);
+        if (playback.ready && playback.key === playbackKey() && nextTime < duration) {
+            nextTime = Math.floor(nextTime * playback.fps) / playback.fps;
+            // Wait for decoding instead of recalculating a costly style on a cache miss.
+            try { await playback.ensure(Math.min(playback.blobs.length - 1, Math.round(nextTime * playback.fps))); }
+            catch (_) { playback.dispose(); }
+            if (!playing || epoch !== playEpoch || document.hidden) return;
+        }
+        time = nextTime;
         sampledScene = sampleScene(frames, time);
         editor.apply(sampledScene?.from); editor.render(); renderTime(); measuredFrames++;
         if (stamp - measuredStart >= 1000) {
-            $('animate-performance').textContent = `${Math.round(measuredFrames * 1000 / (stamp - measuredStart))} FPS · EXACT PREVIEW`;
+            $('animate-performance').textContent = playback.ready && playback.key === playbackKey() ? `${playback.fps} FPS · PREPARED` : `${Math.round(measuredFrames * 1000 / (stamp - measuredStart))} FPS · EXACT PREVIEW`;
             measuredFrames = 0; measuredStart = stamp;
         }
         if (time >= duration) { pause(); message('Playback complete. Play to restart, or scrub to edit.'); }
@@ -220,7 +235,7 @@
         if (!editor.ready()) { message('Load a still image and wait for OpenCV to finish loading.'); return; }
         if (frames.length < 2) { message('Add at least two keyframes at different times to play.'); return; }
         if (time >= duration) seek(0);
-        playing = true; selected = null;
+        playEpoch++; playing = true; selected = null;
         origin = performance.now() - time * 1000;
         measuredStart = performance.now(); measuredFrames = 0;
         $('animate-play').disabled = true; $('animate-pause').disabled = false;
@@ -422,6 +437,12 @@
         if (event.code === 'Space') { event.preventDefault(); if (playing) pause(); else play(); }
         if (event.key === 'Escape') toggle(false);
     });
+    function invertPreview(context, dark) {
+        if (!dark) return;
+        context.save(); context.resetTransform(); context.globalCompositeOperation = 'difference';
+        context.fillStyle = '#fff'; context.fillRect(0, 0, context.canvas.width, context.canvas.height); context.restore();
+    }
+    const playbackKey = () => JSON.stringify([frames, duration, settings(), viewport.snapshot(), width, height, pixelDensity()]);
     let resizeRaf = 0;
     new ResizeObserver(() => {
         cancelAnimationFrame(resizeRaf);
@@ -430,24 +451,48 @@
     window.MiceliumAnimate = {
         toggle, play, pause,
         ownsViewport: () => active && !isVideoMode,
-        frameCanvas: () => composition.rasterize(),
+        frameCanvas: () => composition.renderScene(sampledScene || { from: editor.capture(), to: null, mix: 0 }, settings()).canvas,
         compositionSettings: settings,
         inspectionView: () => viewport.snapshot(),
         drawComposition(target) {
             if (!active || !editor.ready()) return false;
+            if (sampledScene && time < duration && playback.ready && Math.abs(time * playback.fps - Math.round(time * playback.fps)) < 1e-7 && playback.key === playbackKey()) {
+                const image = playback.get(Math.min(playback.blobs.length - 1, Math.round(time * playback.fps)));
+                if (image) { const context = target.drawingContext; context.save(); context.resetTransform(); context.drawImage(image, 0, 0); context.restore(); return true; }
+            }
             const config = settings(), scene = sampledScene || { from: editor.capture(), to: null, mix: 0 };
-            const buffer = composition.renderScene(scene, config, { rasterize: false });
+            const buffer = composition.renderScene(scene, { ...config, dark: false }, { rasterize: false });
             const fit = Math.max(.01, Math.min((width - 32) / buffer.width, (height - 32) / buffer.height));
-            target.clear(); target.background(config.dark ? 17 : 238); target.push();
+            target.clear(); target.background(238); target.push();
             const scale = fit * viewport.zoom, context = target.drawingContext;
             context.save();
             context.translate((width - buffer.width * scale) / 2 + viewport.x, (height - buffer.height * scale) / 2 + viewport.y);
-            context.scale(scale, scale); composition.paint(context); context.restore(); target.pop();
+            context.scale(scale, scale); composition.paint(context); context.restore(); invertPreview(context, config.dark); target.pop();
             $('animate-view-zoom').textContent = `${Math.round(viewport.zoom * 100)}%`;
             const label = `${buffer.width} × ${buffer.height} · ${config.dark ? 'DARK' : 'LIGHT'}`;
             if ($('animate-frame-size').textContent !== label) $('animate-frame-size').textContent = label;
             return true;
         },
+        async preparePlayback({ fps, signal, progress }) {
+            const saved = this.beginExport(), renderer = new window.MiceliumComposition(editor);
+            try {
+                // Establish playback's layout before capturing native-density frames.
+                playing = true; selected = null; renderKeys(); playing = false;
+                await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                const key = playbackKey(), config = settings(), view = viewport.snapshot(), w = width, h = height, density = pixelDensity();
+                const canvas = document.createElement('canvas'); canvas.width = w * density; canvas.height = h * density;
+                const context = canvas.getContext('2d');
+                await playback.prepare({ fps, duration, signal, key, progress, render: t => {
+                    const buffer = renderer.renderScene(sampleScene(saved.keyframes, t), { ...config, dark: false }, { rasterize: false });
+                    context.resetTransform(); context.fillStyle = '#eee'; context.fillRect(0, 0, canvas.width, canvas.height);
+                    const scale = Math.max(.01, Math.min((w - 32) / buffer.width, (h - 32) / buffer.height)) * view.zoom;
+                    context.setTransform(density, 0, 0, density, 0, 0);
+                    context.translate((w - buffer.width * scale) / 2 + view.x, (h - buffer.height * scale) / 2 + view.y);
+                    context.scale(scale, scale); renderer.paint(context); invertPreview(context, config.dark); return canvas;
+                } });
+            } finally { renderer.dispose(); this.finishExport(saved); }
+        },
+        playbackPrepared: () => playback.ready && playback.key === playbackKey(),
         beginExport() {
             pause();
             if (curveRaf) { cancelAnimationFrame(curveRaf); curveRaf = 0; seek(time); }
@@ -462,5 +507,6 @@
         // Read-only inspection is useful for tests and future project serialization.
         snapshot: () => ({ active, playing, time, duration, selected, segmentId, exporting, cameraBase, frames: structuredClone(frames) })
     };
+    new window.MyclmPreviewDialog(window.MiceliumAnimate);
     renderTime(); renderKeys();
 })();

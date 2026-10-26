@@ -14,30 +14,13 @@
     const about = document.createElement('dialog');
     about.id = 'about-dialog'; about.setAttribute('data-editor-overlay', '');
     about.setAttribute('aria-labelledby', 'about-title');
-    about.innerHTML = `<form method="dialog"><header><div><span class="editor-note">A VISUAL PLAYGROUND</span><h2 id="about-title">ABOUT MICELIUM</h2></div><button aria-label="Close About">×</button></header>
-        <div id="about-content" tabindex="0" aria-label="How Micelium works">
-        <p class="about-intro">An image is a field of numbers. Micelium turns those numbers into contours, marks, dots and patterns. Six different recipes, one source image, and a lot of room to experiment.</p>
-        <section><h3>01 / FROM PIXELS TO MARKS</h3><p>Every pixel carries red, green and blue values. Brightness is the starting point for many treatments: the bitmap and dot tools use the average of those channels, while contour-based tools use OpenCV's grayscale conversion. A threshold separates lighter areas from darker ones; edge detection looks for changes between neighbouring pixels.</p>
-        <p>Once a region or edge is found, it can become a line, a dot or a small shape. The parameters change how those marks are placed. A threshold is a decision about what counts as dark; spacing changes the sampling grid; stroke and dot sizes change how much ink covers the image.</p></section>
-        <section><h3>02 / SIX WAYS TO SEE AN IMAGE</h3><div class="about-styles">
-        <article><h4>01 · Techno Organic</h4><p>Canny edge detection finds sharp brightness changes. OpenCV traces them into contours, then curved lines and seeded jitter give those contours an organic character.</p></article>
-        <article><h4>02 · Bitmap Dither</h4><p>A regular grid samples the source. Small rectangles appear where brightness falls below the threshold; controlled noise breaks up the regularity. A coarse grid can make a familiar image feel abstract.</p></article>
-        <article><h4>03 · Analog Organic</h4><p>Thresholded regions become contours. A precomputed noise field displaces their points, and scattered short strokes create a texture that feels drawn rather than mechanically traced.</p></article>
-        <article><h4>04 · Dot Halftone</h4><p>Dark samples become circles on a grid. Filled and hollow dots distribute ink differently: spacing, diameter and outline thickness can change the whole impression without changing the source.</p></article>
-        <article><h4>05 · Dither Plugin Pro</h4><p>Wave modulation, Bayer grids and Floyd–Steinberg error diffusion offer different ways to turn tone into a pattern. Error diffusion passes a brightness error to neighbouring samples instead of simply throwing it away.</p></article>
-        <article><h4>06 · Agon / Liquid Relief</h4><p>Thresholds and contours are layered with displaced edges and directional shadows. The relief is an illusion built from two-dimensional geometry, rather than a three-dimensional mesh.</p></article>
-        </div></section>
-        <section><h3>03 / SMALL FACTS, BIG DIFFERENCES</h3>
-        <h4>Your eye finishes the picture.</h4><p>A field of black dots can suggest a gray tone from a distance. Printing and halftoning exploit this: the arrangement and coverage of ink can carry the tone even when individual marks are only black or white.</p>
-        <h4>Random does not have to mean unpredictable.</h4><p>Micelium resets its random seed for reproducible renders. That keeps organic jitter from changing arbitrarily between frames, pauses and exports. The texture can look irregular while still being repeatable.</p>
-        <h4>Zoom is a camera, not a new image.</h4><p>The image viewport retains native drawing paths and replays them at the display's pixel density. Panning and zooming can reuse geometry, rather than enlarging a small preview bitmap or recalculating every contour.</p>
-        <h4>A small threshold change can reveal a new shape.</h4><p>Pixels on opposite sides of a threshold belong to different regions. Moving that boundary can connect two areas or split one apart. This is why a tiny parameter change can sometimes produce a dramatic result.</p></section>
-        <section><h3>04 / MOVING BETWEEN LOOKS</h3><p>Each animation keyframe stores a style and its parameters. Within one style, numeric values interpolate over time. Between different styles, a fixed dithering pattern breaks up the outgoing marks and builds the incoming ones. Each small cell switches from one complete render to the other, without an opacity fade; the selected easing curve controls how quickly those cells change. Their parameter meanings stay separate: dot spacing is never treated as contour jitter.</p>
-        <p>The pattern stays attached to the composition coordinates, so a paused frame is reproducible when you zoom in or export it. Each endpoint keeps the original style's drawing detail.</p>
-        <p>The selected processing detail stays fixed. If a style takes longer to calculate, playback may slow down instead of silently lowering quality. A PNG sequence renders every requested frame; browser video recording runs in real time and may skip frames under load.</p></section>
-        <section><h3>05 / TRY A SMALL EXPERIMENT</h3><p>Start with a high-contrast image. Compare contours with a coarse dot grid, then vary only one parameter at a time. For an animation, save one look at the start, choose another style at the end, save that key and scrub between them. Try a different easing curve to change the rhythm of the dithering: watch the old marks break apart while the new ones emerge.</p></section>
-        <section><h3>06 / LOCAL BY DESIGN</h3><p>Image processing happens in your browser. The app's runtime libraries and typefaces are local assets; loading an image does not upload its pixels to a rendering service. Ordinary PNG and SVG exports remain available. Animation keys live in this page session and are lost when the page reloads.</p></section>
-        <p class="editor-note about-footer">MYCLM beta · EXPERIMENT, LOOK CLOSER, REPEAT.</p>
+    about.innerHTML = `<form method="dialog"><header><div><span class="editor-note">A VISUAL PLAYGROUND</span><h2 id="about-title">ABOUT MYCLM</h2></div><button aria-label="Close About">×</button></header>
+        <div id="about-content" tabindex="0" aria-label="How MYCLM works">
+        <p class="about-intro">MYCLM turns images into lines, dots and textures. It reads brightness and edges, then rebuilds them through contours, halftones and dithering. Choose a style and shape the result with its parameters.</p>
+        <p>Keyframes let those looks evolve over time. Everything is processed in your browser, with the same drawing detail preserved from preview to export.</p>
+        <p>MYCLM is open source because the future is co-designed. Creative tools grow through shared experiments, questions and contributions. Explore the code, make it your own and help shape what comes next.</p>
+        <p><a href="https://github.com/alexonthacpu/micelium" target="_blank" rel="noopener noreferrer">EXPLORE THE SOURCE</a></p>
+        <p class="editor-note about-footer">MYCLM beta</p>
         </div></form>`;
     document.body.append(about);
     const toggle = nav.querySelector('#menu-toggle'), menu = nav.querySelector('#editor-menu');
