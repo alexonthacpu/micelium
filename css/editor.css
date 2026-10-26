@@ -228,3 +228,55 @@
 #animate-panel #animate-performance { min-width: 24ch; }
 #about-dialog form { height: auto; }
 #about-content { flex: 0 1 auto; }
+/* Shared MYCLM selects: padded chevrons and monochrome floating option rows. */
+.design-select { position: relative; display: block; min-width: 0; width: 100%; font-size: inherit; }
+.design-select > select { position: absolute !important; inset: 0; z-index: 1; display: block !important; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+.design-select-value { display: block; min-height: 36px; border: 1px solid #000; padding: 9px 48px 9px 12px; background: #fff; color: #000; line-height: 1.3; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.design-select-arrow { position: absolute; right: 10px; top: calc(50% - 8px); width: 24px; height: 16px; border-left: 1px solid currentColor; color: #000; pointer-events: none; }
+.design-select-arrow::before, .design-select-arrow::after { content: ''; position: absolute; right: 2px; width: 5px; height: 5px; border: solid currentColor; border-width: 1px 1px 0 0; }
+.design-select-arrow::before { top: 2px; transform: rotate(-45deg); }
+.design-select-arrow::after { bottom: 2px; transform: rotate(135deg); }
+.design-select:focus-within .design-select-value { outline: 2px solid #000; outline-offset: 2px; }
+.design-select:has(select:disabled) { opacity: .4; }
+.design-select-list { position: fixed; inset: auto; box-sizing: border-box; z-index: 2000; margin: 0; padding: 0; border: 1px solid #000; border-radius: 0; background: #fff; color: #000; overflow-y: auto; overscroll-behavior: contain; font-size: 13px; font-weight: 400; text-align: left; box-shadow: none; }
+.design-select-list[hidden] { display: none; }
+.design-select-list [role="option"] { position: relative; min-height: 36px; box-sizing: border-box; padding: 9px 38px 9px 12px; border-bottom: 1px solid #000; cursor: pointer; line-height: 1.3; }
+.design-select-list [role="option"]:last-child { border-bottom: 0; }
+.design-select-list [role="option"][aria-selected="true"], .design-select-list [role="option"].is-active, .design-select-list [role="option"]:hover { background: #000; color: #fff; }
+.design-select-list [aria-selected="true"]::after { content: ''; position: absolute; right: 17px; top: 12px; width: 4px; height: 8px; border: solid currentColor; border-width: 0 1px 1px 0; transform: rotate(45deg); }
+.design-select-list [aria-disabled="true"] { opacity: .4; cursor: default; }
+.animate-view-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding: 9px 0; border-top: 1px dotted #aaa; }
+#animate-panel .animate-view-controls label { display: flex; align-items: center; gap: 8px; }
+#animate-panel .design-select-value { min-height: 28px; padding-top: 5px; padding-bottom: 5px; }
+#animate-panel .animate-settings label > .design-select { width: 120px; }
+#animate-panel .animate-view-controls .design-select { width: 155px; }
+#animate-panel .animate-easing .design-select { width: 100%; }
+#animate-panel #animate-custom-background { display: inline-flex; align-items: center; gap: 6px; }
+#animate-panel #animate-background-color { width: 32px; height: 28px; padding: 2px; border: 1px solid #000; background: #fff; cursor: pointer; }
+#animate-panel #animate-background-hex { width: 88px; height: 28px; border: 1px solid #000; background: #fff; color: #000; padding: 4px; font: inherit; font-size: 12px; }
+/* Export hierarchy: output, file, timing, then applicable compression controls. */
+#animation-export-dialog { width: min(620px, calc(100vw - 32px)); padding: 0; }
+#animation-export-dialog > header { padding: 20px 24px 16px; border-bottom: 1px solid #000; }
+#animation-export-dialog h2 { font-size: 17px; margin: 6px 0 0; letter-spacing: 1px; }
+.export-kicker { display: block; color: #666; font-size: 11px; letter-spacing: 1px; }
+.export-overview { padding: 14px 24px; background: #f3f3f3; border-bottom: 1px solid #000; }
+#animation-export-summary { margin: 6px 0 0; font-size: 14px; line-height: 1.7; white-space: pre-line; }
+#animation-export-dialog #animation-export-settings { display: block; padding: 0 24px; }
+.export-section { padding: 16px 0; border-bottom: 1px dotted #aaa; }
+#animation-export-dialog .export-section h3 { margin: 0 0 12px; font-size: 12px; font-weight: 400; letter-spacing: 1px; }
+.export-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.export-span { grid-column: 1 / -1; }
+#animation-export-frame-range { margin-top: 12px; }
+#animation-export-dialog label { font-size: 12px; letter-spacing: .3px; }
+#animation-export-dialog .design-select-value { padding-top: 10px; padding-bottom: 10px; min-height: 39px; }
+#animation-export-dialog input[type="number"] { min-height: 39px; padding: 9px 12px; }
+#animation-export-dialog .editor-note { margin: 10px 0 0; font-size: 12px; line-height: 1.5; }
+#animation-export-dialog #animation-export-note { margin: 12px 24px; }
+.export-feedback { padding: 2px 24px 0; }
+#animation-export-status { min-height: 22px; margin: 10px 0 12px; font-size: 12px; }
+#animation-export-dialog > footer { position: sticky; bottom: 0; margin: 0; padding: 14px 24px; background: #fff; border-top: 1px solid #000; }
+#animation-export-dialog #animation-export-start { color: #fff; background: #000; padding: 10px 18px; }
+#animation-export-dialog #animation-export-start:hover { color: #000; background: #fff; }
+@media (max-width: 900px) { .export-fields { gap: 10px; } }
+#animation-export-dialog .design-select-value, #animation-export-dialog input[type="number"] { font-size: 14px; }
+.design-select-list { font-size: 14px; }

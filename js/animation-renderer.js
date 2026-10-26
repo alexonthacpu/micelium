@@ -12,13 +12,20 @@
         [thresholds[i], thresholds[j]] = [thresholds[j], thresholds[i]];
     }
     window.MiceliumComposition = class {
+        static invertColor(color) { return '#' + (0xffffff ^ parseInt(color.slice(1), 16)).toString(16).padStart(6, '0'); }
+        static darkBackground(color) {
+            const n = parseInt(color.slice(1), 16);
+            const linear = value => { const c = value / 255; return c <= .04045 ? c / 12.92 : ((c + .055) / 1.055) ** 2.4; };
+            const luminance = .2126 * linear(n >> 16) + .7152 * linear((n >> 8) & 255) + .0722 * linear(n & 255);
+            return 1.05 / (luminance + .05) > (luminance + .05) / .05;
+        }
         constructor(editor, { retainDrawing = true } = {}) {
             this.editor = editor; this.retainDrawing = retainDrawing;
             this.geometry = null; this.geometryKey = null;
             this.buffer = null; this.processing = null; this.source = null;
             this.signature = ''; this.detail = null;
         }
-        render(state, { longEdge = 720, cameraBase = 1, dark = false, detail = 'source' } = {}, { rasterize = true } = {}) {
+        render(state, { longEdge = 720, cameraBase = 1, dark = false, detail = 'source', background = null } = {}, { rasterize = true } = {}) {
             const source = this.editor.image();
             if (!source || !state) return null;
             const ratio = longEdge / Math.max(source.width, source.height);
@@ -32,20 +39,33 @@
                 this.processing = this.editor.processingSource(detail === 'source' ? Infinity : Number(detail));
                 this.detail = detail; this.signature = '';
             }
-            const signature = JSON.stringify([state, cameraBase, dark, detail]);
+            const color = /^#[0-9a-f]{6}$/i.test(background || '') ? background.toLowerCase() : null;
+            const baseBackground = color ? (dark ? this.constructor.invertColor(color) : color) : '#ffffff';
+            const signature = JSON.stringify([state, cameraBase, dark, detail, color]);
             if (this.source !== source || this.signature !== signature) {
                 if (this.retainDrawing) {
                     const shape = { ...state, zoomSlider: cameraBase };
-                    const geometryKey = JSON.stringify([shape, cameraBase, detail]);
+                    const geometryKey = JSON.stringify([shape, cameraBase, detail, baseBackground]);
                     if (this.source !== source || this.geometryKey !== geometryKey) {
                         this.editor.apply(state);
                         this.geometry = window.MiceliumDrawing.capture(this.buffer.drawingContext, () =>
-                            this.editor.paintComposition(this.buffer, shape, cameraBase, false, this.processing), { render: false });
+                            this.editor.paintComposition(this.buffer, shape, cameraBase, false, this.processing, baseBackground), { render: false });
                         this.geometryKey = geometryKey;
                     }
                     this.zoom = (state.zoomSlider || 1) / Math.max(.001, cameraBase); this.dark = dark;
                     this.needsRaster = true;
-                } else { this.editor.apply(state); this.editor.paintComposition(this.buffer, state, cameraBase, dark, this.processing); }
+                } else {
+                    const shape = { ...state, zoomSlider: cameraBase }, key = JSON.stringify([shape, cameraBase, detail, baseBackground]);
+                    if (this.source !== source || this.geometryKey !== key) {
+                        this.editor.apply(state); this.editor.paintComposition(this.buffer, shape, cameraBase, false, this.processing, baseBackground);
+                        this.rasterSource ??= document.createElement('canvas');
+                        if (this.rasterSource.width !== w || this.rasterSource.height !== h) { this.rasterSource.width = w; this.rasterSource.height = h; }
+                        const pixels = this.rasterSource.getContext('2d'); pixels.globalCompositeOperation = 'copy'; pixels.drawImage(this.buffer.canvas, 0, 0);
+                        this.geometryKey = key;
+                    }
+                    this.zoom = (state.zoomSlider || 1) / Math.max(.001, cameraBase); this.dark = dark; this.needsRaster = true;
+                }
+                this.background = baseBackground;
                 this.source = source; this.signature = signature;
             }
             if (rasterize) this.rasterize();
@@ -55,7 +75,7 @@
             if (!scene) return null;
             const output = this.render(scene.from, config, { rasterize: false });
             if (scene.to) {
-                this.secondary ??= new window.MiceliumComposition(this.editor);
+                this.secondary ??= new window.MiceliumComposition(this.editor, { retainDrawing: this.retainDrawing });
                 const previous = this.secondary.signature;
                 try { this.secondary.render(scene.to, config, { rasterize: false }); }
                 finally { this.editor.apply(scene.from); }
@@ -82,7 +102,7 @@
             // replays unchanged vector geometry just because time advances.
             const matrix = context.getTransform(), width = context.canvas.width, height = context.canvas.height;
             const signature = [this.geometry, this.secondary.geometry, this.zoom, this.secondary.zoom,
-                this.dark, this.secondary.dark, width, height, ...['a', 'b', 'c', 'd', 'e', 'f'].map(k => matrix[k])];
+                this.dark, this.secondary.dark, this.retainDrawing ? null : this.signature, this.secondary.retainDrawing ? null : this.secondary.signature, width, height, ...['a', 'b', 'c', 'd', 'e', 'f'].map(k => matrix[k])];
             this.blendLayers ??= [document.createElement('canvas'), document.createElement('canvas')];
             if (!this.blendSignature || signature.some((value, i) => value !== this.blendSignature[i])) {
                 [this, this.secondary].forEach((renderer, i) => {
@@ -133,12 +153,14 @@
             context.save();
             try {
                 context.beginPath(); context.rect(0, 0, w, h); context.clip();
-                context.fillStyle = '#fff'; context.fillRect(0, 0, w, h);
+                context.fillStyle = this.background || '#fff'; context.fillRect(0, 0, w, h);
                 context.save(); context.translate(w / 2, h / 2); context.scale(this.zoom, this.zoom); context.translate(-w / 2, -h / 2);
-                this.geometry.draw(context); context.restore();
+                if (this.retainDrawing) this.geometry.draw(context);
+                else context.drawImage(this.rasterSource, 0, 0, w, h);
+                context.restore();
                 if (this.dark) { context.globalCompositeOperation = 'difference'; context.fillStyle = '#fff'; context.fillRect(0, 0, w, h); }
             } finally { context.restore(); }
         }
-        dispose() { this.secondary?.dispose(); this.secondary = null; this.blendLayers = null; this.blendSignature = null; this.ditherLayer = null; this.ditherTile = null; this.ditherPixels = null; this.ditherStep = null; this.mix = 0; this.needsRaster = false; this.geometry = null; this.geometryKey = null; this.buffer?.remove(); this.processing?.remove(); this.buffer = null; this.processing = null; this.source = null; this.detail = null; this.signature = ''; }
+        dispose() { this.secondary?.dispose(); this.secondary = null; this.blendLayers = null; this.blendSignature = null; this.ditherLayer = null; this.ditherTile = null; this.ditherPixels = null; this.ditherStep = null; this.mix = 0; this.needsRaster = false; this.rasterSource = null; this.geometry = null; this.geometryKey = null; this.buffer?.remove(); this.processing?.remove(); this.buffer = null; this.processing = null; this.source = null; this.detail = null; this.signature = ''; }
     };
 })();

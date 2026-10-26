@@ -5,20 +5,27 @@
     const dialog = document.createElement('dialog');
     dialog.id = 'animation-export-dialog'; dialog.setAttribute('data-editor-overlay', '');
     dialog.setAttribute('aria-labelledby', 'animation-export-title');
-    dialog.innerHTML = `<header><h2 id="animation-export-title">EXPORT ANIMATION</h2><button id="animation-export-close" aria-label="Close animation export">×</button></header>
-        <p id="animation-export-summary"></p><fieldset id="animation-export-settings">
-        <label>FORMAT <select id="animation-export-format"><option value="zip">PNG sequence · lossless</option></select></label>
-        <label>FPS <select id="animation-export-fps">${[12, 15, 24, 25, 30, 50, 60].map(f => `<option${f === 30 ? ' selected' : ''}>${f}</option>`).join('')}</select></label>
-        <label>RESOLUTION <select id="animation-export-resolution"><option value="preview">COMPOSITION</option>${[720, 1080, 1440, 1920, 2560, 3840].map(n => `<option value="${n}">${n} PX</option>`).join('')}<option value="source">SOURCE</option></select></label>
-        <label>QUALITY <select id="animation-export-quality"><option value="12">STANDARD · 12 Mbps</option><option value="24" selected>HIGH · 24 Mbps</option><option value="50">MASTER · 50 Mbps</option><option value="custom">CUSTOM</option></select></label>
-        <label id="animation-export-bitrate-label" hidden>BITRATE · Mbps <input id="animation-export-bitrate" type="number" min="1" max="100" step="1" value="24"></label>
-        <label>RANGE <select id="animation-export-range"><option value="all">ALL FRAMES</option><option value="custom">FRAME RANGE</option></select></label>
-        <label>FIRST FRAME <input id="animation-export-first" type="number" min="0" step="1" value="0" disabled></label>
-        <label>LAST FRAME <input id="animation-export-last" type="number" min="0" step="1" value="449" disabled></label></fieldset>
-        <p class="editor-note" id="animation-export-note">Every frame is rendered in order. PNG sequence is lossless. Frame numbers start at 0; the last selected frame is included.</p>
-        <progress id="animation-export-progress" max="1" value="0"></progress><p id="animation-export-status" role="status">Ready to export.</p>
-        <footer><button id="animation-export-start">EXPORT</button><button id="animation-export-cancel">CLOSE</button></footer>`;
+    dialog.innerHTML = `<header><div><span class="export-kicker">SAVE YOUR ANIMATION</span><h2 id="animation-export-title">EXPORT ANIMATION</h2></div><button id="animation-export-close" aria-label="Close animation export">×</button></header>
+        <div class="export-overview"><span class="export-kicker">OUTPUT</span><p id="animation-export-summary"></p></div>
+        <fieldset id="animation-export-settings">
+        <section class="export-section" aria-labelledby="export-file-heading"><h3 id="export-file-heading">01 / FILE</h3><div class="export-fields">
+        <label>FORMAT <select data-design-select id="animation-export-format"><option value="zip">PNG sequence</option></select></label>
+        <label>RESOLUTION <select data-design-select id="animation-export-resolution"><option value="preview">MATCH COMPOSITION</option>${[720, 1080, 1440, 1920, 2560, 3840].map(n => `<option value="${n}">${n} PX</option>`).join('')}<option value="source">SOURCE</option></select></label>
+        </div></section>
+        <section class="export-section" aria-labelledby="export-motion-heading"><h3 id="export-motion-heading">02 / TIMING</h3><div class="export-fields">
+        <label>FRAME RATE <select data-design-select id="animation-export-fps">${[12, 15, 24, 25, 30, 50, 60].map(f => `<option value="${f}"${f === 30 ? ' selected' : ''}>${f} FPS</option>`).join('')}</select></label>
+        <label>FRAMES TO EXPORT <select data-design-select id="animation-export-range"><option value="all">ENTIRE ANIMATION</option><option value="custom">SELECT A RANGE</option></select></label></div>
+        <div id="animation-export-frame-range" class="export-fields" hidden><label>FIRST FRAME <input id="animation-export-first" type="number" min="0" step="1" value="0" disabled></label>
+        <label>LAST FRAME <input id="animation-export-last" type="number" min="0" step="1" value="449" disabled></label><p class="editor-note export-span">Count from 0. Both selected frames are included.</p></div></section>
+        <section id="animation-export-video-quality" class="export-section" aria-labelledby="export-quality-heading" hidden><h3 id="export-quality-heading">03 / VIDEO QUALITY</h3><div class="export-fields">
+        <label>QUALITY <select data-design-select id="animation-export-quality"><option value="12">STANDARD · 12 Mbps</option><option value="24" selected>HIGH · 24 Mbps</option><option value="50">MASTER · 50 Mbps</option><option value="custom">CUSTOM BITRATE</option></select></label>
+        <label id="animation-export-bitrate-label" hidden>BITRATE · Mbps <input id="animation-export-bitrate" type="number" min="1" max="100" step="1" value="24"></label></div><p class="editor-note">Higher bitrate preserves more detail in motion.</p></section>
+        </fieldset>
+        <p class="editor-note" id="animation-export-note">PNG sequence preserves every frame without compression loss.</p>
+        <div class="export-feedback"><progress id="animation-export-progress" max="1" value="0" aria-label="Export progress"></progress><p id="animation-export-status" role="status">Ready to export.</p></div>
+        <footer><button id="animation-export-cancel">CLOSE</button><button id="animation-export-start">EXPORT FILE</button></footer>`;
     document.body.append(dialog);
+    window.MyclmSelect.enhance(dialog);
     const $ = id => dialog.querySelector(`#animation-export-${id}`);
     let controller = null, types = [], probing = 0;
     const bitrate = () => Number($('quality').value === 'custom' ? $('bitrate').value : $('quality').value) * 1000000;
@@ -39,19 +46,21 @@
         const fps = Number($('fps').value), total = Math.ceil(animation.snapshot().duration * fps - 1e-9), custom = $('range').value === 'custom';
         $('first').max = $('last').max = String(total - 1);
         $('first').disabled = $('last').disabled = !custom;
+        $('frame-range').hidden = !custom;
         if (!custom) { $('first').value = 0; $('last').value = total - 1; }
         const video = $('format').value !== 'zip';
         $('quality').disabled = !video;
+        $('video-quality').hidden = !video;
         $('bitrate-label').hidden = !video || $('quality').value !== 'custom';
         try {
             const selected = plan(), size = dimensions();
             if (video && (!Number.isFinite(bitrate()) || bitrate() < 1000000 || bitrate() > 100000000)) throw new Error('Choose a bitrate from 1 to 100 Mbps.');
-            $('summary').textContent = `${selected.frameCount} frames · ${fps} FPS · ${(selected.frameCount / fps).toFixed(2)} s · ${size.width} × ${size.height} · ${config().dark ? 'DARK' : 'LIGHT'}`;
+            $('summary').textContent = `${size.width} × ${size.height} PX · ${fps} FPS\n${selected.frameCount} frames · ${(selected.frameCount / fps).toFixed(2)} s · BACKGROUND ${config().background || (config().dark ? '#000000' : '#ffffff')}`;
             $('start').disabled = false;
         } catch (error) { $('summary').textContent = error.message; $('start').disabled = true; }
         $('note').textContent = types.find(t => t.ext === $('format').value)?.offline === false
             ? 'Realtime compatibility mode may skip frames under load. PNG sequence renders every frame. Frame numbers start at 0; last frame included.'
-            : 'Video encodes every frame in order, independent of rendering speed. PNG sequence is lossless. Frame numbers start at 0; last frame included.';
+            : video ? 'Every selected frame is encoded. Preview quality does not limit this file.' : 'PNG sequence · lossless frames. Preview quality does not limit these files.';
     }
     async function formats() {
         const revision = ++probing; $('start').disabled = true;
@@ -61,9 +70,10 @@
         const previous = $('format').value;
         $('format').replaceChildren();
         for (const type of [...types, { ext: 'zip', label: 'PNG sequence · lossless' }]) {
-            const option = new Option(type.label, type.ext); $('format').append(option);
+            const option = new Option(type.ext === 'zip' ? 'PNG SEQUENCE' : type.offline === false ? `${type.ext.toUpperCase()} · REALTIME` : `${type.ext.toUpperCase()} VIDEO`, type.ext); $('format').append(option);
         }
         $('format').value = [...$('format').options].some(o => o.value === previous) ? previous : 'zip';
+        $('format')._designRefresh?.();
         refresh();
     }
     function close() { if (controller) controller.abort(); else { probing++; dialog.close(); } }
@@ -100,7 +110,7 @@
             const canvas = renderer.renderScene(window.MiceliumTimeline.sampleScene(keys, selected.startFrame / fps), output).canvas;
             await engine.run({
                 duration: saved.duration, fps, ...selected, bitrate: bits, signal: controller.signal, type,
-                metadata: { width: canvas.width, height: canvas.height, dark: output.dark, cameraBase: output.cameraBase, detail: output.detail, styleTransitions: 'spatial-dither', keyframes: keys },
+                metadata: { width: canvas.width, height: canvas.height, dark: output.dark, background: output.background || (output.dark ? '#000000' : '#ffffff'), cameraBase: output.cameraBase, detail: output.detail, styleTransitions: 'spatial-dither', keyframes: keys },
                 render: time => renderer.renderScene(window.MiceliumTimeline.sampleScene(keys, time), output).canvas,
                 progress: (value, text) => { $('progress').value = value; $('status').textContent = text; }
             });

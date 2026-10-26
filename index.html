@@ -616,7 +616,7 @@
     </div>
     <!-- Logo video - frozen, animates on slider interaction -->
     <div id="logo-header">
-        <video id="logo" src="img/1_1.mp4" muted playsinline preload="auto" onclick="location.reload()" title="MYCELIUM - click to reload"></video>
+        <video id="logo" src="img/1_1.mp4" muted playsinline preload="auto" onclick="location.reload()" title="MYCLM - click to reload"></video>
     </div>
 
     <!-- Scrollable controls -->
@@ -3503,7 +3503,7 @@ function windowResized() {
     function setupPngLogo(event) {
         logoHeader.classList.remove("video-mode");
         logoHeader.classList.add("png-mode");
-        logoHeader.innerHTML = "<img id=\"logo\" src=\"img/k2.png\" alt=\"MYCELIUM\" role=\"button\" tabindex=\"0\" aria-label=\"Refresh page\">";
+        logoHeader.innerHTML = "<img id=\"logo\" src=\"img/k2.png\" alt=\"MYCLM\" role=\"button\" tabindex=\"0\" aria-label=\"Refresh page\">";
         const imgEl = document.getElementById("logo");
         if (imgEl) {
             imgEl.addEventListener("click", function() {
@@ -3520,7 +3520,7 @@ function windowResized() {
     function setupVideoLogo() {
         logoHeader.classList.remove("png-mode");
         logoHeader.classList.add("video-mode");
-        logoHeader.innerHTML = "<video id=\"logo\" src=\"img/1_1.mp4\" muted playsinline preload=\"auto\" loop title=\"MYCELIUM\"></video>";
+        logoHeader.innerHTML = "<video id=\"logo\" src=\"img/1_1.mp4\" muted playsinline preload=\"auto\" loop title=\"MYCLM\"></video>";
         
         const logoVid = document.getElementById("logo");
         if (!logoVid) return;
@@ -3724,6 +3724,7 @@ function windowResized() {
 <script defer src="js/animation-export.js"></script>
 <script defer src="js/animation-panel.js"></script>
 <script defer src="js/animation-preview.js"></script>
+<script defer src="js/design-select.js"></script>
 <script defer src="js/animate.js"></script>
 <script defer src="js/animation-export-ui.js"></script>
 <script defer src="js/navigation.js"></script>
