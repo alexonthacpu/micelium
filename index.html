@@ -3324,9 +3324,24 @@ function updateStillExportLabels() {
         : `${dark ? 'WHITE ON BLACK' : 'BLACK ON WHITE'} · SOLID BACKGROUND`;
 }
 
+let mobileStillExportUrl = null;
+function offerMobileStillExport(blob, filename, info) {
+    if (mobileStillExportUrl) URL.revokeObjectURL(mobileStillExportUrl);
+    mobileStillExportUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = mobileStillExportUrl;
+    link.download = filename;
+    link.textContent = `SAVE ${filename.endsWith('.svg') ? 'SVG' : 'PNG'}`;
+    link.style.cssText = 'display:block;padding:12px;margin-top:8px;border:1px solid currentColor;color:inherit;background:#fff;text-align:center;';
+    // A real tap keeps the download inside the browser's user activation.
+    // Keep the URL alive: mobile browsers may read the file after opening it.
+    info.replaceChildren(document.createTextNode('File ready. Tap to save; if a preview opens, use Share to save it.'), link);
+}
+
 function exportFile(col, format) {
     let source = isVideoMode ? videoGraphics : (rawSourceMedia || originalImg || img);
     let info = document.getElementById('modalInfoText');
+    const mobileDownload = matchMedia('(max-width: 767px), (pointer: coarse)').matches;
 
     if (!source) {
         if (info) info.innerText = "Notice: Carica prima un'immagine o video per esportare!";
@@ -3412,8 +3427,11 @@ function exportFile(col, format) {
 
     if (format === 'svg') {
         try {
-            exportCanvas.save(filename);
-            if (info) info.innerText = `Export completato con successo: ${filename}`;
+            if (mobileDownload && info) {
+                const svg = new XMLSerializer().serializeToString(exportCanvas._renderer.svg);
+                offerMobileStillExport(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }), filename, info);
+            } else exportCanvas.save(filename);
+            if (info && !mobileDownload) info.innerText = `Export completato con successo: ${filename}`;
         } catch(e) {
             console.error("SVG save error:", e);
             if (info) info.innerText = `Errore salvataggio SVG: ${e.message}`;
@@ -3424,6 +3442,11 @@ function exportFile(col, format) {
             if (canvasElt && canvasElt.toBlob) {
                 canvasElt.toBlob((blob) => {
                     if (blob) {
+                        if (mobileDownload && info) {
+                            offerMobileStillExport(blob, filename, info);
+                            exportCanvas.remove();
+                            return;
+                        }
                         let url = URL.createObjectURL(blob);
                         let a = document.createElement('a');
                         a.download = filename;
@@ -3434,6 +3457,11 @@ function exportFile(col, format) {
                         setTimeout(() => URL.revokeObjectURL(url), 3000);
                         if (info) info.innerText = `Export completato con successo: ${filename}`;
                     } else {
+                        if (mobileDownload) {
+                            if (info) info.innerText = 'Export failed. Please try again.';
+                            exportCanvas.remove();
+                            return;
+                        }
                         saveCanvas(exportCanvas, exportName, format);
                         if (info) info.innerText = `Export completato: ${filename}`;
                     }
@@ -3452,7 +3480,7 @@ function exportFile(col, format) {
     let sb = document.getElementById('status-bar');
     if (sb) sb.innerText = `File esportato: ${filename}`;
 
-    setTimeout(() => {
+    if (!mobileDownload || format === 'svg') setTimeout(() => {
         try { exportCanvas.remove(); } catch(e){}
     }, 1500);
 }
