@@ -98,3 +98,9 @@ body { height: 100dvh; }
 @media (max-height: 500px) and (pointer: coarse) {
     #workspace { flex-basis: 60%; height: 60%; }
 }
+
+/* Indeterminate encoding progress: no artificial percentage. */
+.still-export-loading { height: 6px; border: 1px solid #000; margin-top: 12px; overflow: hidden; }
+.still-export-loading span { display: block; height: 100%; width: 35%; background: #000; animation: still-export-progress 1.2s ease-in-out infinite alternate; }
+@keyframes still-export-progress { from { transform: translateX(0); } to { transform: translateX(186%); } }
+@media (prefers-reduced-motion: reduce) { .still-export-loading span { animation: none; width: 100%; } }

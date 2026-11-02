@@ -3324,21 +3324,58 @@ function updateStillExportLabels() {
         : `${dark ? 'WHITE ON BLACK' : 'BLACK ON WHITE'} · SOLID BACKGROUND`;
 }
 
-let mobileStillExportUrl = null;
-function offerMobileStillExport(blob, filename, info) {
-    if (mobileStillExportUrl) URL.revokeObjectURL(mobileStillExportUrl);
-    mobileStillExportUrl = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = mobileStillExportUrl;
-    link.download = filename;
-    link.textContent = `SAVE ${filename.endsWith('.svg') ? 'SVG' : 'PNG'}`;
-    link.style.cssText = 'display:block;padding:12px;margin-top:8px;border:1px solid currentColor;color:inherit;background:#fff;text-align:center;';
-    // A real tap keeps the download inside the browser's user activation.
-    // Keep the URL alive: mobile browsers may read the file after opening it.
-    info.replaceChildren(document.createTextNode('File ready. Tap to save; if a preview opens, use Share to save it.'), link);
+let mobileStillExportBusy = false;
+function finishMobileStillExport(message) {
+    mobileStillExportBusy = false;
+    document.querySelectorAll('#modalImageSection button').forEach(button => button.disabled = false);
+    const info = document.getElementById('modalInfoText');
+    info.removeAttribute('aria-busy');
+    info.textContent = message;
+}
+async function saveMobileStillExport(blob, filename, info) {
+    try {
+        const file = new File([blob], filename, { type: blob.type });
+        if (navigator.share && navigator.canShare?.({ files: [file] })) {
+            try {
+                await navigator.share({ files: [file] });
+                finishMobileStillExport('Image handed to your device.');
+                return;
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    finishMobileStillExport('Save cancelled.');
+                    return;
+                }
+                // Unsupported or expired activation: retain the normal download.
+            }
+        }
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url; link.download = filename;
+        document.body.append(link); link.click(); link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+        finishMobileStillExport('Download started. Open the image and use Share to save it to Photos.');
+    } catch (error) {
+        finishMobileStillExport(`Export failed: ${error.message}`);
+    }
+}
+function exportFile(col, format) {
+    const mobile = matchMedia('(max-width: 767px), (pointer: coarse)').matches;
+    if (!mobile) return renderStillFile(col, format);
+    if (mobileStillExportBusy) return;
+    if (!(isVideoMode ? videoGraphics : (rawSourceMedia || originalImg || img))) return renderStillFile(col, format);
+    mobileStillExportBusy = true;
+    document.querySelectorAll('#modalImageSection button').forEach(button => button.disabled = true);
+    const info = document.getElementById('modalInfoText');
+    info.setAttribute('aria-busy', 'true');
+    info.innerHTML = '<span>PREPARING IMAGE…</span><div class="still-export-loading" role="progressbar" aria-label="Preparing export"><span></span></div>';
+    // Let the loading bar paint before the full-quality render starts.
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+        try { renderStillFile(col, format); }
+        catch (error) { finishMobileStillExport(`Export failed: ${error.message}`); }
+    }));
 }
 
-function exportFile(col, format) {
+function renderStillFile(col, format) {
     let source = isVideoMode ? videoGraphics : (rawSourceMedia || originalImg || img);
     let info = document.getElementById('modalInfoText');
     const mobileDownload = matchMedia('(max-width: 767px), (pointer: coarse)').matches;
@@ -3353,7 +3390,7 @@ function exportFile(col, format) {
     let qualitySelect = document.getElementById('exportQualitySelectModal');
     let qualityScale = parseFloat(qualitySelect ? qualitySelect.value : 2) || 2;
     
-    if (info) info.innerText = `Elaborazione export ${format.toUpperCase()} (${qualityScale}X)...`;
+    if (info && !mobileDownload) info.innerText = `Elaborazione export ${format.toUpperCase()} (${qualityScale}X)...`;
 
     let exportCanvas = (format === 'svg') 
         ? createGraphics(source.width, source.height, SVG) 
@@ -3388,6 +3425,7 @@ function exportFile(col, format) {
         else if (mode == "6") renderStyle06(exportCanvas, p[0], p[1], p[2], p[3], renderColor);
     } catch(err) {
         console.error("Errore durante render export:", err);
+        if (mobileDownload) { exportCanvas.remove(); throw err; }
     } finally {
         img = savedImg;
         exportColorMode.value = savedColorMode;
@@ -3429,12 +3467,13 @@ function exportFile(col, format) {
         try {
             if (mobileDownload && info) {
                 const svg = new XMLSerializer().serializeToString(exportCanvas._renderer.svg);
-                offerMobileStillExport(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }), filename, info);
+                saveMobileStillExport(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }), filename, info);
             } else exportCanvas.save(filename);
             if (info && !mobileDownload) info.innerText = `Export completato con successo: ${filename}`;
         } catch(e) {
             console.error("SVG save error:", e);
-            if (info) info.innerText = `Errore salvataggio SVG: ${e.message}`;
+            if (mobileDownload) finishMobileStillExport(`Export failed: ${e.message}`);
+            else if (info) info.innerText = `Errore salvataggio SVG: ${e.message}`;
         }
     } else {
         try {
@@ -3443,7 +3482,7 @@ function exportFile(col, format) {
                 canvasElt.toBlob((blob) => {
                     if (blob) {
                         if (mobileDownload && info) {
-                            offerMobileStillExport(blob, filename, info);
+                            saveMobileStillExport(blob, filename, info);
                             exportCanvas.remove();
                             return;
                         }
@@ -3458,7 +3497,7 @@ function exportFile(col, format) {
                         if (info) info.innerText = `Export completato con successo: ${filename}`;
                     } else {
                         if (mobileDownload) {
-                            if (info) info.innerText = 'Export failed. Please try again.';
+                            finishMobileStillExport('Export failed. Please try again.');
                             exportCanvas.remove();
                             return;
                         }
@@ -3468,12 +3507,16 @@ function exportFile(col, format) {
                 }, 'image/png');
             } else {
                 saveCanvas(exportCanvas, exportName, format);
-                if (info) info.innerText = `Export completato: ${filename}`;
+                if (mobileDownload) { exportCanvas.remove(); finishMobileStillExport('Download started.'); }
+                else if (info) info.innerText = `Export completato: ${filename}`;
             }
         } catch(e) {
             console.warn("Blob download fallback to saveCanvas:", e);
-            saveCanvas(exportCanvas, exportName, format);
-            if (info) info.innerText = `Export completato: ${filename}`;
+            if (mobileDownload) { exportCanvas.remove(); finishMobileStillExport(`Export failed: ${e.message}`); }
+            else {
+                saveCanvas(exportCanvas, exportName, format);
+                if (info) info.innerText = `Export completato: ${filename}`;
+            }
         }
     }
 
